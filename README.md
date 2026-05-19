@@ -49,8 +49,8 @@ the correct viewer template for each published panorama URL.
 | Viewer                                 | License    | Notes                                                                                                                         |
 | -------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | [Pannellum](https://pannellum.org)     | MIT        | Default; loaded from CDN                                                                                                      |
-| [Marzipano](https://www.marzipano.net) | Apache 2.0 | Included                                                                                                                      |
-| [Avansel](https://avansel.com)         | —          | Loaded from CDN                                                                                                               |
+| [Marzipano](https://www.marzipano.net) | Apache 2.0 | Loaded from CDN                                                                                                               |
+| [Avansel](https://avansel.github.io/)  | MIT        | Loaded from CDN                                                                                                               |
 | [Krpano](https://krpano.com)           | Commercial | **Not included** — obtain a license, place the library in `public/krpano.X.X.X/`, and update `KRPANO_DIR` in `app/config.php` |
 
 For example, if you want to use krpano version 1.23.3 and have a licensed
