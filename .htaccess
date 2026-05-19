@@ -1,0 +1,29 @@
+# Block direct HTTP access to the password file
+<Files "password.txt">
+    Order deny,allow
+    Deny from all
+</Files>
+
+# Block direct HTTP access to panorama metadata
+<Files "meta.json">
+    Order deny,allow
+    Deny from all
+</Files>
+
+RewriteEngine On
+
+# Serve the upload form from app/ as the site root
+RewriteRule ^$ app/upload.php [L]
+
+# Route api/process.php requests to app/process.php
+RewriteRule ^api(?:/.*)?$ app/process.php [L]
+
+# Block direct HTTP access to all of app/ (skips internal rewrites)
+RewriteCond %{THE_REQUEST} \s/app/ [NC]
+RewriteRule ^app/ - [F,L]
+
+# Rewrite krpano tour XML requests before the general panorama rule
+RewriteRule ^images/([^/]+)/tour\.xml$ ./app/template_loader.php?pano_id=$1&format=xml [L,QSA]
+
+# Rewrite panorama directory requests (with or without trailing slash)
+RewriteRule ^images/([^/]+)/?$ ./app/template_loader.php?pano_id=$1 [L,QSA]

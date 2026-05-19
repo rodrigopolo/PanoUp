@@ -1,0 +1,12 @@
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Proprietary viewer — obtain separately under krpano license
+public/krpano.*/
+
+# Generated panorama tiles and metadata (user content, not code)
+images/*/
+
+# Local credentials
+password.txt
