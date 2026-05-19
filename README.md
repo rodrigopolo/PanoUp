@@ -1,23 +1,23 @@
 # PanoUp
 
-A self-hosted web tool for uploading and publishing equirectangular panoramas.
-Drop a 2:1 JPG, choose a viewer, and the app tiles and publishes it instantly.
+A plug-and-play self-hosted web tool for uploading and publishing
+equirectangular panoramas. Drop a 2:1 JPG, choose a viewer, and the app tiles
+and publishes it instantly.
 
-## What it is
-
-A simple app that runs on any standard LAMP server and needs no cloud service or
-external API. You upload a panorama, it processes it, and you get a shareable
-URL. All data stays on your own server.
+A simple app that runs on any standard LAMP server and needs no cloud service,
+external API or database connection. You upload a panorama, it processes it, and
+you get a shareable URL. All data stays on your own server.
 
 ## How it works
 
 The browser validates the image, extracts EXIF GPS coordinates, and uses WebGL
 to render six cube faces from the equirectangular source. Each face is uploaded
 to the server, where PHP tiles it into a multires pyramid using Imagick
-(preferred) or GD as a fallback. The server also generates an Open Graph image
-(`og_image.jpg`), a preview strip (`preview.jpg`), and a thumbnail
-(`thumb.jpg`) before writing a `meta.json` manifest. A small PHP router serves
-the correct viewer template for each published panorama URL.
+(preferred) or GD as a fallback, saving the tedious work of uploading each image
+one by one. The server also generates an Open Graph image (`og_image.jpg`) for
+SEO and preview cards on social media, a preview strip (`preview.jpg`), and a
+thumbnail (`thumb.jpg`) before writing a `meta.json` manifest. A small PHP
+router serves the correct viewer template for each published panorama URL.
 
 ## Features
 
@@ -57,38 +57,24 @@ For example, if you want to use krpano version 1.23.3 and have a licensed
 version, put the following files into in the `./public/krpano.1.23.3` folder:
 
 ```
-├── plugins
+├── plugins <-- The complete plug-ins folder
 │   ├── bingmaps.js
-│   ├── combobox.xml
-│   ├── fps.xml
 │   ├── googlemaps.js
 │   ├── gyro2.js
 │   ├── krpanomaps.xml
-│   ├── pp_blur.js
-│   ├── pp_light.js
-│   ├── pp_sharpen.js
-│   ├── showtext.xml
-│   ├── soundinterface.js
-│   ├── videoplayer.js
-│   ├── webvr_handcursor.png
-│   ├── webvr_laser.png
-│   ├── webvr_light.png
-│   ├── webvr_vrcursor.png
+│   ├── ...
 │   ├── webvr.js
 │   └── webvr.xml
-├── skin
+├── skin <-- The complete skins folder
 │   ├── rotate_device.png
 │   ├── vtourskin_design_ultra_light.xml
-│   ├── vtourskin_hotspot.png
-│   ├── vtourskin_light.png
-│   ├── vtourskin_mapspot.png
-│   ├── vtourskin_mapspotactive.png
+│   ├── ...
 │   ├── vtourskin.png
 │   └── vtourskin.xml
-├── style.css <-- You'll have to create this file with tour own customizations.
-└── tour.js
+├── style.css <-- Your own customizations, else, leave it blank.
+└── tour.js <-- Your licensed krpano
 ```
 
 ## License
 
-MIT License — Copyright © 2026 Rodrigo Polo, Vibe coding with Claude.
+MIT License — Copyright © 2026 Rodrigo Polo.
