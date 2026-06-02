@@ -15,6 +15,32 @@ if ($panoId === '' || $panoId === '.' || $panoId === '..'
     exit('Invalid panorama ID.');
 }
 
+// Compute siteRoot early — needed by both the processing template and viewer templates
+$protocol = (
+    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ||
+    (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+) ? 'https://' : 'http://';
+$appBase  = dirname(dirname($_SERVER['SCRIPT_NAME']));
+$siteRoot = $protocol . $_SERVER['HTTP_HOST'] . rtrim($appBase, '/') . '/';
+$panoURL  = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+
+// Check for an active background job before looking for meta.json
+$jobPath = IMAGES_DIR . '/' . $panoId . '/job.json';
+if (is_file($jobPath)) {
+    $job       = json_decode(file_get_contents($jobPath), true) ?? [];
+    $jobStatus = $job['status'] ?? '';
+    if ($jobStatus === 'error') {
+        http_response_code(500);
+        $errMsg = htmlspecialchars($job['error'] ?? 'Processing failed.', ENT_QUOTES, 'UTF-8');
+        exit('Processing failed: ' . $errMsg);
+    }
+    if ($jobStatus !== 'done') {
+        include APP_DIR . '/templates/processing.php';
+        exit;
+    }
+    // status=done: fall through to normal viewer
+}
+
 // Read meta.json
 $metaPath = IMAGES_DIR . '/' . $panoId . '/meta.json';
 if (!is_file($metaPath)) {
@@ -27,15 +53,6 @@ if (!$meta) {
     http_response_code(500);
     exit('Could not read panorama metadata.');
 }
-
-// Compute siteRoot dynamically — works regardless of subdirectory depth
-$protocol = (
-    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ||
-    (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
-) ? 'https://' : 'http://';
-$appBase  = dirname(dirname($_SERVER['SCRIPT_NAME']));
-$siteRoot = $protocol . $_SERVER['HTTP_HOST'] . rtrim($appBase, '/') . '/';
-$panoURL  = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
 // Map meta.json fields to template variables
 $panoImage        = 'images/' . rawurlencode($panoId) . '/';

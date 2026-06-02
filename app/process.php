@@ -52,6 +52,8 @@ try {
 		case 'upload':   action_upload();   break;
 		case 'tile':     action_tile();     break;
 		case 'finalize': action_finalize(); break;
+		case 'spawn':    action_spawn();    break;
+		case 'status':   action_status();   break;
 		default:
 			http_response_code(400);
 			echo json_encode(['error' => 'Unknown action']);
@@ -204,4 +206,75 @@ function validate_face(): string {
 function sanitize_coord(string $v): string {
 	$v = trim($v);
 	return preg_match('/^-?\d+(\.\d+)?$/', $v) ? $v : '';
+}
+
+function action_spawn(): void {
+	$id      = validate_id();
+	$viewer  = $_POST['viewer'] ?? 'pannellum';
+	$title   = htmlspecialchars(trim($_POST['title'] ?? 'Panorama'), ENT_XML1);
+	$desc    = htmlspecialchars(trim($_POST['desc']  ?? ''),         ENT_XML1);
+	$lat     = sanitize_coord($_POST['lat'] ?? '');
+	$lng     = sanitize_coord($_POST['lng'] ?? '');
+	$exif    = isset($_POST['exif']) && is_array($_POST['exif']) ? $_POST['exif'] : null;
+	$cubefaceRaw = $_POST['cubeface'] ?? null;
+	$cubeface    = is_array($cubefaceRaw) ? $cubefaceRaw
+	             : ($cubefaceRaw ? json_decode($cubefaceRaw, true) : null);
+
+	$outDir = IMAGES_DIR . "/$id";
+
+	$job = [
+		'id'       => $id,
+		'title'    => $title,
+		'status'   => 'pending',
+		'progress' => 0,
+		'step'     => 'Queued…',
+		'created'  => date('c'),
+		'params'   => compact('viewer', 'title', 'desc', 'lat', 'lng', 'exif', 'cubeface'),
+	];
+	file_put_contents($outDir . '/job.json', json_encode($job, JSON_PRETTY_PRINT));
+
+	$phpBin = find_php_binary();
+	$worker = escapeshellarg(__DIR__ . '/worker.php');
+	$base   = escapeshellarg(dirname(__DIR__));
+	$log    = escapeshellarg($outDir . '/worker.log');
+
+	if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+		pclose(popen('start /B ' . escapeshellarg($phpBin) . " $worker $id $base", 'r'));
+	} else {
+		exec("(" . escapeshellarg($phpBin) . " $worker $id $base < /dev/null > $log 2>&1) &");
+	}
+
+	echo json_encode(['status' => 'ok', 'id' => $id, 'url' => "images/$id/"]);
+}
+
+function action_status(): void {
+	$id      = validate_id();
+	$jobPath = IMAGES_DIR . "/$id/job.json";
+	if (!file_exists($jobPath)) {
+		http_response_code(404);
+		echo json_encode(['error' => 'Job not found']);
+		return;
+	}
+	$job = json_decode(file_get_contents($jobPath), true);
+	unset($job['params']); // never expose raw params to client
+	echo json_encode($job);
+}
+
+function find_php_binary(): string {
+	if (!empty(PHP_BINARY)) return realpath(PHP_BINARY) ?: PHP_BINARY;
+	$c = PHP_BINDIR . DIRECTORY_SEPARATOR . 'php';
+	if (is_executable($c)) return realpath($c) ?: $c;
+	if (!empty($_SERVER['_']) && is_executable($_SERVER['_']))
+		return realpath($_SERVER['_']) ?: $_SERVER['_'];
+	$v = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+	foreach (["php{$v}", 'php' . PHP_MAJOR_VERSION, 'php'] as $name) {
+		$c = PHP_BINDIR . DIRECTORY_SEPARATOR . $name;
+		if (is_executable($c)) return realpath($c) ?: $c;
+	}
+	$which = trim((string) shell_exec('command -v php 2>/dev/null'));
+	if ($which && is_executable($which)) {
+		$ver = trim((string) shell_exec(escapeshellarg($which) . ' -r "echo PHP_VERSION;" 2>/dev/null'));
+		if (str_starts_with($ver, $v)) return realpath($which) ?: $which;
+	}
+	return '';
 }

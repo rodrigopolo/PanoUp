@@ -10,6 +10,12 @@
     Deny from all
 </Files>
 
+# Block direct HTTP access to background job state
+<Files "job.json">
+    Order deny,allow
+    Deny from all
+</Files>
+
 RewriteEngine On
 
 # Serve the upload form from app/ as the site root

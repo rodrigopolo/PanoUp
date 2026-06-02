@@ -63,7 +63,7 @@ function setInputState(el, hasError) {
 	}
 }
 
-const TOTAL_STEPS = 20; // 1 init + 6 render + 6 upload + 6 tile + 1 finalize = 20
+const TOTAL_STEPS = 14; // 1 init + 6 render + 6 upload + 1 spawn = 14 (tiling is server-side)
 
 function showProgress(label, step) {
 	if (!progress.classList.contains('is-active')) {
@@ -610,27 +610,13 @@ uploadForm.addEventListener('submit', async (e) => {
 			mapper.destroy();   // free GPU resources regardless of success/failure
 		}
 
-		// ── Phase 2: tile all 6 faces ─────────────────────────────
-		for (const face of faces) {
-			showProgress(`${faceNames[face]} Face — tiling…`, step);
-			const tileResp = await fetch('./api', {
-				method:  'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body:    JSON.stringify({ action: 'tile', id, face, viewer: viewerSelect.value }),
-			});
-			if (!tileResp.ok) throw new Error(`${faceNames[face]} Face: tile error ${tileResp.status}`);
-			const tileJson = await tileResp.json();
-			if (tileJson.error) throw new Error(`${faceNames[face]} Face: ${tileJson.error}`);
-			step++;
-		}
-
-		// ── finalize ─────────────────────────────────────────────
-		showProgress('Finalizing…', step);   // step = 19, bar at 95%
-		const finalResp = await fetch('./api', {
+		// ── Spawn background worker ───────────────────────────────
+		showProgress('Starting processing…', step);  // step=13, bar at 93%
+		const spawnResp = await fetch('./api', {
 			method:  'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body:    JSON.stringify({
-				action:   'finalize',
+				action:   'spawn',
 				id,
 				viewer:   viewerSelect.value,
 				title:    titleInput.value.trim(),
@@ -641,11 +627,11 @@ uploadForm.addEventListener('submit', async (e) => {
 				cubeface: cubeface ?? null,
 			}),
 		});
-		if (!finalResp.ok) throw new Error(`Finalize failed (${finalResp.status})`);
-		const finalJson = await finalResp.json();
-		if (finalJson.error) throw new Error(finalJson.error);
+		if (!spawnResp.ok) throw new Error(`Spawn failed (${spawnResp.status})`);
+		const spawnJson = await spawnResp.json();
+		if (spawnJson.error) throw new Error(spawnJson.error);
 
-		showSuccess(finalJson.url);
+		showSuccess(spawnJson.url);
 
 	} catch (err) {
 		console.error('[PanoramaUploader]', err);
