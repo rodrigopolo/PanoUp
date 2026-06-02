@@ -36,7 +36,10 @@ function _auth_render_login(string $err): void
     $err_html = $err !== ''
         ? '<p class="auth-error">' . htmlspecialchars($err, ENT_QUOTES, 'UTF-8') . '</p>'
         : '';
-    $action = htmlspecialchars(strtok($_SERVER['REQUEST_URI'], '?'), ENT_QUOTES, 'UTF-8');
+    $action    = htmlspecialchars(strtok($_SERVER['REQUEST_URI'], '?'), ENT_QUOTES, 'UTF-8');
+    // Compute root-relative base so the stylesheet resolves from any subdir depth
+    $_auth_root = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/') . '/';
+    $css_href   = htmlspecialchars($_auth_root, ENT_QUOTES, 'UTF-8') . 'public/upload/style.css';
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,121 +47,41 @@ function _auth_render_login(string $err): void
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panorama Uploader</title>
-  <style>
-    :root {
-      --bg:             #1c1c1c;
-      --bg-raised:      #252525;
-      --bg-elevated:    #2f2f2f;
-      --border:         #454545;
-      --blue:           #4a9eff;
-      --blue-dim:       #2870c8;
-      --blue-glow:      rgba(74,158,255,0.12);
-      --red:            #e05252;
-      --text-primary:   #f0f0f0;
-      --text-secondary: #9a9a9a;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text-primary);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      background: var(--bg-raised);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2.5rem 2rem;
-      width: 100%;
-      max-width: 380px;
-    }
-    .badge {
-      display: inline-block;
-      font-family: 'Menlo', 'Consolas', monospace;
-      font-weight: 700;
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--blue);
-      border: 1px solid var(--blue-dim);
-      background: var(--blue-glow);
-      border-radius: 4px;
-      padding: 0.25rem 0.5rem;
-      margin-bottom: 1.25rem;
-    }
-    h1 {
-      font-weight: 700;
-      font-size: 1.5rem;
-      margin-bottom: 0.25rem;
-    }
-    .subtitle {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-bottom: 2rem;
-    }
-    label {
-      display: block;
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 0.5rem;
-      font-family: 'Menlo', 'Consolas', monospace;
-    }
-    input[type="password"] {
-      width: 100%;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text-primary);
-      font-family: 'Menlo', 'Consolas', monospace;
-      font-size: 0.9rem;
-      padding: 0.65rem 0.85rem;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    input[type="password"]:focus { border-color: var(--blue-dim); }
-    .auth-error {
-      font-size: 0.75rem;
-      color: var(--red);
-      margin-top: 0.5rem;
-    }
-    button {
-      margin-top: 1.5rem;
-      width: 100%;
-      background: var(--blue);
-      border: none;
-      border-radius: 4px;
-      color: #ffffff;
-      font-family: 'Menlo', 'Consolas', monospace;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      padding: 0.75rem 1rem;
-      cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s;
-    }
-    button:hover {
-      background: #6db3ff;
-      box-shadow: 0 0 24px rgba(74,158,255,0.3);
-    }
-  </style>
+  <link rel="stylesheet" href="<?= $css_href ?>" />
 </head>
 <body>
-  <div class="card">
-    <div class="badge">360°</div>
-    <h1>Panorama Uploader</h1>
-    <p class="subtitle">This instance is password-protected.</p>
-    <form method="POST" action="<?= $action ?>">
-      <label for="panoup_password">Password</label>
-      <input type="password" id="panoup_password" name="panoup_password"
-             autocomplete="current-password" autofocus required />
-      <?= $err_html ?>
-      <button type="submit">Enter</button>
-    </form>
+  <div class="auth-wrap">
+    <div class="auth-card">
+
+      <header>
+        <h1>Panorama Uploader</h1>
+        <p>Sign in to continue</p>
+      </header>
+
+      <div class="card" style="margin-top: 2px;">
+        <div class="card-title">Authentication</div>
+        <div class="card-body">
+          <form method="POST" action="<?= $action ?>">
+            <label class="auth-label" for="panoup_password">Password</label>
+            <input
+              type="password"
+              id="panoup_password"
+              name="panoup_password"
+              class="text-input"
+              style="margin-top: 6px;"
+              autocomplete="current-password"
+              autofocus
+              required
+            />
+            <?= $err_html ?>
+            <button type="submit" class="btn" style="margin-top: 12px; width: 100%;">
+              Enter
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
   </div>
 </body>
 </html>

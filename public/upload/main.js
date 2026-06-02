@@ -33,6 +33,25 @@ const successPanel     = document.getElementById('successPanel');
 const panoUrlEl        = document.getElementById('panoUrl');
 const uploadAnotherBtn = document.getElementById('uploadAnotherBtn');
 
+/* ── Screen Wake Lock ─────────────────────────────────────── */
+let _wakeLock = null;
+
+async function requestWakeLock() {
+	if (!('wakeLock' in navigator)) return;
+	try { _wakeLock = await navigator.wakeLock.request('screen'); }
+	catch (_) { /* permission denied or unsupported — non-fatal */ }
+}
+
+function releaseWakeLock() {
+	_wakeLock?.release().catch(() => {});
+	_wakeLock = null;
+}
+
+// Re-acquire if the tab becomes visible while a lock is held
+document.addEventListener('visibilitychange', () => {
+	if (_wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
+});
+
 /* ── State ────────────────────────────────────────────────── */
 let selectedFile = null; // the validated File object (or null)
 let imageWidth   = 0;    // pixel width of the validated image
@@ -562,6 +581,8 @@ uploadForm.addEventListener('submit', async (e) => {
 	let step = 0;
 	showProgress('Initializing…', step);
 
+	await requestWakeLock();
+
 	try {
 		// ── init ─────────────────────────────────────────────────
 		const initResp = await fetch('./api', {
@@ -643,10 +664,10 @@ uploadForm.addEventListener('submit', async (e) => {
 
 		const alert = document.createElement('p');
 		alert.id = 'serverAlert';
-		alert.style.cssText =
-			'font-family:var(--font-mono);font-size:0.7rem;color:var(--red);' +
-			'margin-top:12px;letter-spacing:0.03em;';
+		alert.style.cssText = 'font-size:11px;color:var(--error);margin-top:10px;';
 		alert.textContent = `Upload error: ${err.message}`;
 		document.querySelector('.submit-row').appendChild(alert);
+	} finally {
+		releaseWakeLock();
 	}
 });
