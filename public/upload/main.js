@@ -63,7 +63,7 @@ function setInputState(el, hasError) {
 	}
 }
 
-const TOTAL_STEPS = 20; // 1 init + 6 faces × 3 steps (render/upload/tile) + 1 finalize
+const TOTAL_STEPS = 20; // 1 init + 6 render + 6 upload + 6 tile + 1 finalize = 20
 
 function showProgress(label, step) {
 	if (!progress.classList.contains('is-active')) {
@@ -475,6 +475,45 @@ viewerSelect.addEventListener('change', () => {
 
 uploadAnotherBtn.addEventListener('click', resetUpload);
 
+/* ── XHR upload helper ────────────────────────────────────── */
+
+/**
+ * Upload one cube face via XHR with byte-level upload progress reporting.
+ * @param {number}   id          Panorama session id
+ * @param {string}   face        One of 'f','b','r','l','u','d'
+ * @param {Blob}     blob        JPEG blob from renderFaceAsBlob()
+ * @param {string}   faceName    Display name e.g. "Front"
+ * @param {function} onProgress  Called with (loadedBytes, totalBytes) each progress event
+ * @returns {Promise<void>}
+ */
+function uploadFaceXhr(id, face, blob, faceName, onProgress) {
+	return new Promise((resolve, reject) => {
+		const fd = new FormData();
+		fd.append('action', 'upload');
+		fd.append('id',     String(id));
+		fd.append('face',   face);
+		fd.append('image',  blob, `${faceName}.jpg`);
+
+		const xhr = new XMLHttpRequest();
+		xhr.upload.onprogress = (e) => {
+			if (e.lengthComputable) onProgress(e.loaded, e.total);
+		};
+		xhr.onload = () => {
+			if (xhr.status < 200 || xhr.status >= 300) {
+				reject(new Error(`${faceName} Face: upload error ${xhr.status}`)); return;
+			}
+			let json;
+			try   { json = JSON.parse(xhr.responseText); }
+			catch { reject(new Error(`${faceName} Face: invalid JSON response`)); return; }
+			json.error ? reject(new Error(`${faceName} Face: ${json.error}`)) : resolve();
+		};
+		xhr.onerror   = () => reject(new Error(`${faceName} Face: network error`));
+		xhr.ontimeout = () => reject(new Error(`${faceName} Face: upload timed out`));
+		xhr.open('POST', './api');
+		xhr.send(fd);
+	});
+}
+
 /* ── Form Submission ──────────────────────────────────────── */
 
 uploadForm.addEventListener('submit', async (e) => {
@@ -544,49 +583,45 @@ uploadForm.addEventListener('submit', async (e) => {
 		});
 		URL.revokeObjectURL(srcUrl);
 
-		// ── 6 faces × 3 steps (render → upload → tile) ───────────
-		const faceSize = cubeface ? cubeface.maxCubeface : Math.round(imageWidth / Math.PI);
-		const mapper   = new CubeMapper(srcImg, faceSize);
-		const faceNames = {
-			f: "Front",
-			b: "Back",
-			r: "Right",
-			l: "Left",
-			u: "Up",
-			d: "Down"
-		};
+		// ── Phase 1: render + upload, one face at a time ────────────
+		const faceSize  = cubeface ? cubeface.maxCubeface : Math.round(imageWidth / Math.PI);
+		const mapper    = new CubeMapper(srcImg, faceSize);
+		const faceNames = { f: 'Front', b: 'Back', r: 'Right', l: 'Left', u: 'Up', d: 'Down' };
+		const faces     = ['f', 'b', 'r', 'l', 'u', 'd'];
+
 		try {
-			for (const face of ['f', 'b', 'r', 'l', 'u', 'd']) {
+			for (const face of faces) {
 				showProgress(`${faceNames[face]} Face — rendering…`, step);
 				const blob = await mapper.renderFaceAsBlob(face);
 				step++;
+				showProgress(`${faceNames[face]} Face — rendered`, step);
 
-				showProgress(`${faceNames[face]} Face — uploading…`, step);
-				const fd = new FormData();
-				fd.append('action', 'upload');
-				fd.append('id',     String(id));
-				fd.append('face',   face);
-				fd.append('image',  blob, `${faceNames[face]}.jpg`);
-				const uploadResp = await fetch('./api', { method: 'POST', body: fd });
-				if (!uploadResp.ok) throw new Error(`${faceNames[face]} Face: upload error ${uploadResp.status}`);
-				const uploadJson = await uploadResp.json();
-				if (uploadJson.error) throw new Error(`${faceNames[face]} Face: ${uploadJson.error}`);
-				// blob goes out of scope → eligible for GC before tiling begins
-				step++;
-
-				showProgress(`${faceNames[face]} Face — tiling…`, step);
-				const tileResp = await fetch('./api', {
-					method:  'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body:    JSON.stringify({ action: 'tile', id, face, viewer: viewerSelect.value }),
+				const uploadStartStep = step;
+				await uploadFaceXhr(id, face, blob, faceNames[face], (loaded, total) => {
+					const barPct = Math.round((uploadStartStep + loaded / total) / TOTAL_STEPS * 100);
+					progressLabel.textContent    = `${faceNames[face]} Face — uploading…`;
+					progressFraction.textContent = `${(loaded / 1048576).toFixed(1)} / ${(total / 1048576).toFixed(1)} MB`;
+					progressFill.style.width     = `${barPct}%`;
 				});
-				if (!tileResp.ok) throw new Error(`${faceNames[face]} Face: tile error ${tileResp.status}`);
-				const tileJson = await tileResp.json();
-				if (tileJson.error) throw new Error(`${faceNames[face]} Face: ${tileJson.error}`);
 				step++;
+				// blob goes out of scope here → eligible for GC before next face renders
 			}
 		} finally {
 			mapper.destroy();   // free GPU resources regardless of success/failure
+		}
+
+		// ── Phase 2: tile all 6 faces ─────────────────────────────
+		for (const face of faces) {
+			showProgress(`${faceNames[face]} Face — tiling…`, step);
+			const tileResp = await fetch('./api', {
+				method:  'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body:    JSON.stringify({ action: 'tile', id, face, viewer: viewerSelect.value }),
+			});
+			if (!tileResp.ok) throw new Error(`${faceNames[face]} Face: tile error ${tileResp.status}`);
+			const tileJson = await tileResp.json();
+			if (tileJson.error) throw new Error(`${faceNames[face]} Face: ${tileJson.error}`);
+			step++;
 		}
 
 		// ── finalize ─────────────────────────────────────────────
