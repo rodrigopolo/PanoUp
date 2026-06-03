@@ -37,10 +37,13 @@ body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   min-height: 100vh;
   line-height: 1.5;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* ── Layout wrapper ────────────────────────────────────────── */
 .layout {
+  width: 100%;
   max-width: 660px;
   margin: 0 auto;
   padding: 40px 20px 60px;
@@ -505,4 +508,8 @@ header p {
   .btn { width: 100%; }
   .submit-row { justify-content: stretch; }
   .success-actions { justify-content: stretch; }
+  /* Safari Mobile zooms in on inputs with font-size < 16px */
+  .text-input,
+  .textarea-input,
+  .select-input { font-size: 16px; }
 }
