@@ -222,16 +222,22 @@ function action_spawn(): void {
 
 	$outDir = IMAGES_DIR . "/$id";
 
-	$job = [
+	$meta = [
 		'id'       => $id,
 		'title'    => $title,
+		'desc'     => $desc,
+		'viewer'   => $viewer,
+		'lat'      => $lat,
+		'lng'      => $lng,
+		'exif'     => $exif,
+		'cubeface' => $cubeface,
 		'status'   => 'pending',
 		'progress' => 0,
 		'step'     => 'Queued…',
 		'created'  => date('c'),
-		'params'   => compact('viewer', 'title', 'desc', 'lat', 'lng', 'exif', 'cubeface'),
+		'multires' => null,
 	];
-	file_put_contents($outDir . '/job.json', json_encode($job, JSON_PRETTY_PRINT));
+	file_put_contents($outDir . '/meta.json', json_encode($meta, JSON_PRETTY_PRINT));
 
 	$phpBin = find_php_binary();
 	$worker = escapeshellarg(__DIR__ . '/worker.php');
@@ -248,16 +254,21 @@ function action_spawn(): void {
 }
 
 function action_status(): void {
-	$id      = validate_id();
-	$jobPath = IMAGES_DIR . "/$id/job.json";
-	if (!file_exists($jobPath)) {
+	$id       = validate_id();
+	$metaPath = IMAGES_DIR . "/$id/meta.json";
+	if (!file_exists($metaPath)) {
 		http_response_code(404);
 		echo json_encode(['error' => 'Job not found']);
 		return;
 	}
-	$job = json_decode(file_get_contents($jobPath), true);
-	unset($job['params']); // never expose raw params to client
-	echo json_encode($job);
+	$meta = json_decode(file_get_contents($metaPath), true);
+	echo json_encode([
+		'status'   => $meta['status']   ?? 'pending',
+		'progress' => $meta['progress'] ?? 0,
+		'step'     => $meta['step']     ?? '',
+		'url'      => $meta['url']      ?? null,
+		'error'    => $meta['error']    ?? null,
+	]);
 }
 
 function find_php_binary(): string {

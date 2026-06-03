@@ -24,24 +24,7 @@ $appBase  = dirname(dirname($_SERVER['SCRIPT_NAME']));
 $siteRoot = $protocol . $_SERVER['HTTP_HOST'] . rtrim($appBase, '/') . '/';
 $panoURL  = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
-// Check for an active background job before looking for meta.json
-$jobPath = IMAGES_DIR . '/' . $panoId . '/job.json';
-if (is_file($jobPath)) {
-    $job       = json_decode(file_get_contents($jobPath), true) ?? [];
-    $jobStatus = $job['status'] ?? '';
-    if ($jobStatus === 'error') {
-        http_response_code(500);
-        $errMsg = htmlspecialchars($job['error'] ?? 'Processing failed.', ENT_QUOTES, 'UTF-8');
-        exit('Processing failed: ' . $errMsg);
-    }
-    if ($jobStatus !== 'done') {
-        include APP_DIR . '/templates/processing.php';
-        exit;
-    }
-    // status=done: fall through to normal viewer
-}
-
-// Read meta.json
+// Read meta.json — contains both job state and viewer metadata
 $metaPath = IMAGES_DIR . '/' . $panoId . '/meta.json';
 if (!is_file($metaPath)) {
     http_response_code(404);
@@ -52,6 +35,19 @@ $meta = json_decode(file_get_contents($metaPath), true);
 if (!$meta) {
     http_response_code(500);
     exit('Could not read panorama metadata.');
+}
+
+// Gate on job status; absent status means legacy panorama already done
+$metaStatus = $meta['status'] ?? 'done';
+if ($metaStatus === 'error') {
+    http_response_code(500);
+    $errMsg = htmlspecialchars($meta['error'] ?? 'Processing failed.', ENT_QUOTES, 'UTF-8');
+    exit('Processing failed: ' . $errMsg);
+}
+if ($metaStatus !== 'done') {
+    $job = $meta; // processing.php expects $job with title/progress/step
+    include APP_DIR . '/templates/processing.php';
+    exit;
 }
 
 // Map meta.json fields to template variables

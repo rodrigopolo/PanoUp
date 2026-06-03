@@ -3,8 +3,8 @@
  * worker.php  —  Detached background tile processor.
  * CLI only: php worker.php {job_id} {project_root}
  *
- * Spawned by action=spawn in process.php. Reads params from job.json,
- * tiles all 6 cube faces, writes meta.json, then marks the job done.
+ * Spawned by action=spawn in process.php. Reads params from meta.json,
+ * tiles all 6 cube faces, then marks the job done in the same file.
  */
 
 if (php_sapi_name() !== 'cli') exit(1);
@@ -29,27 +29,27 @@ if (defined('MEMORY_LIMIT') && MEMORY_LIMIT !== '') {
     ini_set('memory_limit', '1024M');
 }
 
-$outDir  = IMAGES_DIR . "/$id";
-$jobFile = $outDir . '/job.json';
+$outDir   = IMAGES_DIR . "/$id";
+$metaFile = $outDir . '/meta.json';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function readJob(string $file): array
+function readMeta(string $file): array
 {
     return json_decode(file_get_contents($file), true) ?? [];
 }
 
-function writeJob(string $file, array $data): void
+function writeMeta(string $file, array $data): void
 {
     file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
 }
 
-function updateProgress(string $jobFile, int $pct, string $step): void
+function updateProgress(string $metaFile, int $pct, string $step): void
 {
-    $d = readJob($jobFile);
+    $d = readMeta($metaFile);
     $d['progress'] = $pct;
     $d['step']     = $step;
-    writeJob($jobFile, $d);
+    writeMeta($metaFile, $d);
 }
 
 function make_worker_tiler(string $viewer): TilerBase
@@ -64,15 +64,14 @@ function make_worker_tiler(string $viewer): TilerBase
 
 // ── Main processing ───────────────────────────────────────────────────────────
 
-$job    = readJob($jobFile);
-$params = $job['params'] ?? [];
+$meta = readMeta($metaFile);
 
-$job['status'] = 'processing';
-$job['step']   = 'Starting…';
-writeJob($jobFile, $job);
+$meta['status'] = 'processing';
+$meta['step']   = 'Starting…';
+writeMeta($metaFile, $meta);
 
 try {
-    $viewer = $params['viewer'] ?? 'pannellum';
+    $viewer = $meta['viewer'] ?? 'pannellum';
     $tiler  = make_worker_tiler($viewer);
 
     $faces     = ['f', 'b', 'r', 'l', 'u', 'd'];
@@ -82,14 +81,14 @@ try {
 
     foreach ($faces as $i => $face) {
         // Report progress before starting each face so label reflects current work
-        updateProgress($jobFile, $facePcts[$i], "Tiling {$faceNames[$face]} face…");
+        updateProgress($metaFile, $facePcts[$i], "Tiling {$faceNames[$face]} face…");
         $result = $tiler->processFace($outDir, $face, $outDir);
         if (!$result) {
             throw new RuntimeException("Tiling failed for face '$face'");
         }
     }
 
-    updateProgress($jobFile, 85, 'Finalizing…');
+    updateProgress($metaFile, 85, 'Finalizing…');
     $multires = $tiler->finalize($outDir, $outDir);
 
     // Delete raw face files now that tiles are generated
@@ -97,35 +96,22 @@ try {
         @unlink($outDir . '/' . $f . '.jpg');
     }
 
-    // Write meta.json BEFORE marking job done so any reload triggered by the
-    // client always finds meta.json ready
-    $meta = [
-        'id'       => $id,
-        'title'    => $params['title']    ?? '',
-        'desc'     => $params['desc']     ?? '',
-        'viewer'   => $viewer,
-        'lat'      => $params['lat']      ?? '',
-        'lng'      => $params['lng']      ?? '',
-        'exif'     => $params['exif']     ?? null,
-        'cubeface' => $params['cubeface'] ?? null,
-        'multires' => $multires,
-    ];
-    file_put_contents($outDir . '/meta.json', json_encode($meta, JSON_PRETTY_PRINT));
-
-    // Mark job done
-    $d = readJob($jobFile);
-    $d['status']   = 'done';
-    $d['progress'] = 100;
-    $d['step']     = 'Processing complete.';
-    $d['url']      = "images/$id/";
-    $d['finished'] = date('c');
-    writeJob($jobFile, $d);
+    // Write multires + status=done in one atomic update — meta.json is fully
+    // complete before status becomes 'done', so any reload finds it ready
+    $meta             = readMeta($metaFile);
+    $meta['multires'] = $multires;
+    $meta['status']   = 'done';
+    $meta['progress'] = 100;
+    $meta['step']     = 'Processing complete.';
+    $meta['url']      = "images/$id/";
+    $meta['finished'] = date('c');
+    writeMeta($metaFile, $meta);
 
 } catch (Throwable $e) {
-    $d = readJob($jobFile);
-    $d['status'] = 'error';
-    $d['step']   = 'Error: ' . $e->getMessage();
-    $d['error']  = $e->getMessage();
-    writeJob($jobFile, $d);
+    $meta            = readMeta($metaFile);
+    $meta['status']  = 'error';
+    $meta['step']    = 'Error: ' . $e->getMessage();
+    $meta['error']   = $e->getMessage();
+    writeMeta($metaFile, $meta);
     exit(1);
 }

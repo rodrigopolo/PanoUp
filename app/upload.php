@@ -145,7 +145,7 @@ require_once __DIR__ . '/config.php';
 
 </div><!-- /.layout -->
 
-<script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/lite.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.js"></script>
 <script src="public/upload/main.js"></script>
 <script src="public/upload/webgl.js"></script>
 </body>
