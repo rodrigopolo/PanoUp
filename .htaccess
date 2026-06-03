@@ -31,5 +31,8 @@ RewriteRule ^app/ - [F,L]
 # Rewrite krpano tour XML requests before the general panorama rule
 RewriteRule ^images/([^/]+)/tour\.xml$ ./app/template_loader.php?pano_id=$1&format=xml [L,QSA,B]
 
-# Rewrite panorama directory requests (with or without trailing slash)
-RewriteRule ^images/([^/]+)/?$ ./app/template_loader.php?pano_id=$1 [L,QSA,B]
+# Redirect panorama URLs without trailing slash — prevents mod_dir from appending pano_id
+RewriteRule ^images/([^/]+)$ /images/$1/ [R=301,L]
+
+# Rewrite panorama directory requests (trailing slash form)
+RewriteRule ^images/([^/]+)/$ ./app/template_loader.php?pano_id=$1 [L,QSA,B]
