@@ -10,26 +10,30 @@ you get a shareable URL. All data stays on your own server.
 
 ## How it works
 
-The browser validates the image, extracts EXIF GPS coordinates, and uses WebGL
-to render six cube faces from the equirectangular source. Each face is uploaded
-to the server one at a time while the upload form reports byte-level progress.
-Once all six faces are uploaded, the server spawns a detached background worker
-and immediately returns the panorama URL — no waiting for tiles to finish.
+The browser validates the image, extracts full EXIF metadata (camera make/model,
+exposure settings, GPS coordinates, and more), and uses WebGL to render six cube
+faces from the equirectangular source. Each face is uploaded to the server one at
+a time while the upload form reports byte-level progress. Once all six faces are
+uploaded, the server spawns a detached background worker and immediately returns
+the panorama URL — no waiting for tiles to finish.
 
-The background worker tiles each face into a multires pyramid using Imagick
-(preferred) or GD as a fallback, generates an Open Graph image (`og_image.jpg`),
-a preview strip (`preview.jpg`), and a thumbnail (`thumb.jpg`), then writes a
-`meta.json` manifest. If the panorama URL is visited before the worker finishes,
-a live progress page is served that polls the worker status and auto-reloads once
-processing is complete. A small PHP router serves the correct viewer template for
-each published panorama URL.
+Each panorama gets a short random ID (e.g. `dQw4w9Wg`) rather than a sequential
+integer, so URLs are not guessable by enumeration. The background worker tiles
+each face into a multires pyramid using Imagick (preferred) or GD as a fallback,
+generates an Open Graph image (`og_image.jpg`), a preview strip (`preview.jpg`),
+and a thumbnail (`thumb.jpg`), then finalises a single `meta.json` manifest that
+tracks both job state and panorama metadata. If the panorama URL is visited before
+the worker finishes, a live progress page is served that polls the worker status
+and auto-reloads once processing is complete. A small PHP router serves the
+correct viewer template for each published panorama URL.
 
 ## Features
 
 - **Background tiling** — tile generation runs in a detached server worker; the panorama URL is available immediately after upload.
 - **Live processing page** — visiting the panorama URL while tiles are being generated shows a real-time progress page that auto-reloads when done.
 - **Password protection** — create `password.txt` to enable, delete it to disable. No tools or hashing needed.
-- **EXIF GPS** — latitude and longitude are extracted automatically and stored with each panorama.
+- **Full EXIF metadata** — camera make/model, exposure settings, GPS coordinates, and all other available EXIF fields are extracted in the browser and stored with each panorama.
+- **Non-enumerable URLs** — each panorama gets a short random ID (`dQw4w9Wg` style) instead of a sequential integer, so the full library cannot be discovered by guessing.
 - **Derived images** — Open Graph image (1200×630), krpano preview strip (256×1536), and thumbnail (240×240) are generated on upload.
 - **Flexible folder names** — panorama folders can be renamed to anything, including names with spaces.
 - **Configurable defaults** — set your preferred viewer and library paths in `app/config.php`.
