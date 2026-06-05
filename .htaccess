@@ -30,3 +30,8 @@ RewriteRule ^images/([^/]+)$ /images/$1/ [R=301,L]
 
 # Rewrite panorama directory requests (trailing slash form)
 RewriteRule ^images/([^/]+)/$ ./app/template_loader.php?pano_id=$1 [L,QSA,B]
+
+# No indexing
+Options -Indexes
+IndexIgnore *
+

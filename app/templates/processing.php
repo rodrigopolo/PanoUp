@@ -7,7 +7,7 @@ header('Expires: 0');
 $pageTitle  = htmlspecialchars($job['title'] ?? 'Processing…', ENT_QUOTES, 'UTF-8');
 $initPct    = (int)($job['progress'] ?? 0);
 $initStep   = htmlspecialchars($job['step'] ?? 'Processing…', ENT_QUOTES, 'UTF-8');
-$statusBase = rtrim($siteRoot, '/') . '/api?action=status&id=' . (int)$panoId;
+$statusBase = rtrim($siteRoot, '/') . '/api?action=status&id=' . rawurlencode($panoId);
 $css_href   = htmlspecialchars($siteRoot, ENT_QUOTES, 'UTF-8') . 'public/upload/style.css';
 ?><!DOCTYPE html>
 <html lang="en">

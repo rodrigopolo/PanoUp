@@ -67,12 +67,12 @@ try {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 function action_init(): void {
-	$next = next_image_id();
-	$dir  = IMAGES_DIR . "/$next";
+	$id  = generate_id();
+	$dir = IMAGES_DIR . "/$id";
 	if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
 		throw new RuntimeException("Cannot create directory: $dir");
 	}
-	echo json_encode(['id' => $next]);
+	echo json_encode(['id' => $id]);
 }
 
 function action_upload(): void {
@@ -174,18 +174,16 @@ function action_finalize(): void {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function next_image_id(): int {
-	$max = 0;
-	foreach (glob(IMAGES_DIR . '/*/') as $dir) {
-		$n = (int) basename($dir);
-		if ($n > $max) $max = $n;
-	}
-	return $max + 1;
+function generate_id(): string {
+	do {
+		$id = rtrim(strtr(base64_encode(random_bytes(6)), '+/', '-_'), '=');
+	} while (is_dir(IMAGES_DIR . "/$id"));
+	return $id;
 }
 
-function validate_id(): int {
-	$id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-	if ($id <= 0) {
+function validate_id(): string {
+	$id = trim($_GET['id'] ?? $_POST['id'] ?? '');
+	if (!preg_match('/^[A-Za-z0-9_-]{1,32}$/', $id)) {
 		http_response_code(400);
 		echo json_encode(['error' => 'Invalid id']);
 		exit;

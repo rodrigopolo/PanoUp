@@ -9,10 +9,10 @@
 
 if (php_sapi_name() !== 'cli') exit(1);
 
-$id      = (int)($argv[1] ?? 0);
+$id      = $argv[1] ?? '';
 $baseDir = rtrim($argv[2] ?? '', '/\\');
 
-if ($id <= 0 || $baseDir === '') exit(1);
+if (!preg_match('/^[A-Za-z0-9_-]{1,32}$/', $id) || $baseDir === '') exit(1);
 
 define('IMAGES_DIR', $baseDir . '/images');
 

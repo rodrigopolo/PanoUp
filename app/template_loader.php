@@ -7,10 +7,7 @@ require_once __DIR__ . '/config.php';
 
 // Validate pano_id — reject empty, traversal sequences, and path separators
 $panoId = $_GET['pano_id'] ?? '';
-if ($panoId === '' || $panoId === '.' || $panoId === '..'
-    || strpos($panoId, '/')  !== false
-    || strpos($panoId, '\\') !== false
-    || strpos($panoId, "\0") !== false) {
+if (!preg_match('/^[A-Za-z0-9_-]{1,32}$/', $panoId)) {
     http_response_code(400);
     exit('Invalid panorama ID.');
 }
