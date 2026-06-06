@@ -7,7 +7,7 @@
 
 'use strict';
 
-/* ── DOM refs ─────────────────────────────────────────────── */
+/* -- DOM refs ----------------------------------------------- */
 const dropZone      = document.getElementById('dropZone');
 const fileInput     = document.getElementById('fileInput');
 const browseBtn     = document.getElementById('browseBtn');
@@ -33,7 +33,7 @@ const successPanel     = document.getElementById('successPanel');
 const panoUrlEl        = document.getElementById('panoUrl');
 const uploadAnotherBtn = document.getElementById('uploadAnotherBtn');
 
-/* ── Screen Wake Lock ─────────────────────────────────────── */
+/* -- Screen Wake Lock --------------------------------------- */
 let _wakeLock = null;
 
 async function requestWakeLock() {
@@ -52,7 +52,7 @@ document.addEventListener('visibilitychange', () => {
 	if (_wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
 });
 
-/* ── State ────────────────────────────────────────────────── */
+/* -- State -------------------------------------------------- */
 let selectedFile = null; // the validated File object (or null)
 let imageWidth   = 0;    // pixel width of the validated image
 let gpsLat       = '';   // GPS latitude string (8 decimals) or ''
@@ -62,7 +62,7 @@ let exifData     = null; // full parsed EXIF object (or null)
 window.panoFile = null;
 window.panoExif = null;
 
-/* ── Helpers ──────────────────────────────────────────────── */
+/* -- Helpers ------------------------------------------------ */
 
 function showError(el, message) {
 	el.textContent = message;
@@ -164,7 +164,7 @@ function expandForm(delayMs = 150) {
 	}, delayMs);
 }
 
-/* ── File Validation ──────────────────────────────────────── */
+/* -- File Validation ---------------------------------------- */
 
 /**
  * Checks MIME type / extension.
@@ -281,7 +281,7 @@ async function processFile(file) {
 	setFileAccepted(true);
 }
 
-/* ── Cubeface calculation ─────────────────────────────────── */
+/* -- Cubeface calculation ----------------------------------- */
 
 /**
  * Returns the nearest multiple of `step` to `value`.
@@ -388,7 +388,7 @@ function calcCubefaceForViewer(W, viewer) {
 	}
 }
 
-/* ── Drop Zone UI states ──────────────────────────────────── */
+/* -- Drop Zone UI states ------------------------------------ */
 
 function setDropZoneError() {
 	dropZone.classList.add('has-error');
@@ -406,7 +406,7 @@ function setFileAccepted(accepted) {
 		: '';
 }
 
-/* ── Drag & Drop events ───────────────────────────────────── */
+/* -- Drag & Drop events ------------------------------------- */
 
 // Prevent browser from opening dropped files
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((evt) => {
@@ -437,7 +437,7 @@ dropZone.addEventListener('drop', (e) => {
 	}
 });
 
-/* ── Click to browse ──────────────────────────────────────── */
+/* -- Click to browse ---------------------------------------- */
 
 browseBtn.addEventListener('click', (e) => {
 	e.stopPropagation();
@@ -465,7 +465,7 @@ fileInput.addEventListener('change', () => {
 	}
 });
 
-/* ── Character counter ────────────────────────────────────── */
+/* -- Character counter -------------------------------------- */
 
 descriptionInput.addEventListener('input', () => {
 	const len = descriptionInput.value.length;
@@ -476,7 +476,7 @@ descriptionInput.addEventListener('input', () => {
 		: 'var(--text-tertiary)';
 });
 
-/* ── Live clear errors ────────────────────────────────────── */
+/* -- Live clear errors -------------------------------------- */
 
 titleInput.addEventListener('input', () => {
 	if (titleInput.value.trim()) {
@@ -494,7 +494,7 @@ viewerSelect.addEventListener('change', () => {
 
 uploadAnotherBtn.addEventListener('click', resetUpload);
 
-/* ── XHR upload helper ────────────────────────────────────── */
+/* -- XHR upload helper -------------------------------------- */
 
 /**
  * Upload one cube face via XHR with byte-level upload progress reporting.
@@ -533,7 +533,7 @@ function uploadFaceXhr(id, face, blob, faceName, onProgress) {
 	});
 }
 
-/* ── Form Submission ──────────────────────────────────────── */
+/* -- Form Submission ---------------------------------------- */
 
 uploadForm.addEventListener('submit', async (e) => {
 	e.preventDefault();
@@ -574,7 +574,7 @@ uploadForm.addEventListener('submit', async (e) => {
 	// Calculate cubeface parameters for the selected viewer
 	const cubeface = calcCubefaceForViewer(imageWidth, viewerSelect.value);
 
-	// ── Disable UI and start progress ────────────────────────
+	// -- Disable UI and start progress ------------------------
 	submitBtn.disabled = true;
 	document.getElementById('serverAlert')?.remove();
 
@@ -584,7 +584,7 @@ uploadForm.addEventListener('submit', async (e) => {
 	await requestWakeLock();
 
 	try {
-		// ── init ─────────────────────────────────────────────────
+		// -- init -------------------------------------------------
 		const initResp = await fetch('./api', {
 			method:  'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -594,7 +594,7 @@ uploadForm.addEventListener('submit', async (e) => {
 		const { id } = await initResp.json();
 		step++;
 
-		// ── decode source image for WebGL ─────────────────────────
+		// -- decode source image for WebGL -------------------------
 		const srcUrl = URL.createObjectURL(selectedFile);
 		const srcImg = await new Promise((resolve, reject) => {
 			const img = new Image();
@@ -604,7 +604,7 @@ uploadForm.addEventListener('submit', async (e) => {
 		});
 		URL.revokeObjectURL(srcUrl);
 
-		// ── Phase 1: render + upload, one face at a time ────────────
+		// -- Phase 1: render + upload, one face at a time ------------
 		const faceSize  = cubeface ? cubeface.maxCubeface : Math.round(imageWidth / Math.PI);
 		const mapper    = new CubeMapper(srcImg, faceSize);
 		const faceNames = { f: 'Front', b: 'Back', r: 'Right', l: 'Left', u: 'Up', d: 'Down' };
@@ -631,7 +631,7 @@ uploadForm.addEventListener('submit', async (e) => {
 			mapper.destroy();   // free GPU resources regardless of success/failure
 		}
 
-		// ── Spawn background worker ───────────────────────────────
+		// -- Spawn background worker -------------------------------
 		showProgress('Starting processing…', step);  // step=13, bar at 93%
 		const spawnResp = await fetch('./api', {
 			method:  'POST',

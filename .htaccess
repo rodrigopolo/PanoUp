@@ -1,13 +1,13 @@
 # Block direct HTTP access to the password file
 <Files "password.txt">
-    Order deny,allow
-    Deny from all
+	Order deny,allow
+	Deny from all
 </Files>
 
 # Block direct HTTP access to panorama metadata
 <Files "meta.json">
-    Order deny,allow
-    Deny from all
+	Order deny,allow
+	Deny from all
 </Files>
 
 RewriteEngine On

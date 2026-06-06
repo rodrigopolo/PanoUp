@@ -10,7 +10,7 @@ include_once __DIR__ . '/classes/PannellumTiler.php';
 
 // Memory limit
 if (defined('MEMORY_LIMIT') && MEMORY_LIMIT !== '') {
-    ini_set('memory_limit', MEMORY_LIMIT);
+	ini_set('memory_limit', MEMORY_LIMIT);
 }else{
 	ini_set('memory_limit', '1024M');
 }
@@ -138,7 +138,7 @@ function action_finalize(): void {
 
 	$cubefaceRaw = $_POST['cubeface'] ?? null;
 	$cubeface    = is_array($cubefaceRaw) ? $cubefaceRaw
-	             : ($cubefaceRaw ? json_decode($cubefaceRaw, true) : null);
+				 : ($cubefaceRaw ? json_decode($cubefaceRaw, true) : null);
 
 	$out_dir = IMAGES_DIR . "/$id";
 
@@ -216,7 +216,7 @@ function action_spawn(): void {
 	$exif    = isset($_POST['exif']) && is_array($_POST['exif']) ? $_POST['exif'] : null;
 	$cubefaceRaw = $_POST['cubeface'] ?? null;
 	$cubeface    = is_array($cubefaceRaw) ? $cubefaceRaw
-	             : ($cubefaceRaw ? json_decode($cubefaceRaw, true) : null);
+				 : ($cubefaceRaw ? json_decode($cubefaceRaw, true) : null);
 
 	$outDir = IMAGES_DIR . "/$id";
 

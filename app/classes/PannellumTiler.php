@@ -25,142 +25,142 @@ require_once __DIR__ . '/TilerBase.php';
  */
 class PannellumTiler extends TilerBase
 {
-    private const TILE_SIZE   = 512;
-    private const CUBE_LEVELS = [16384, 8192, 4096, 2048, 1024, 512];
+	private const TILE_SIZE   = 512;
+	private const CUBE_LEVELS = [16384, 8192, 4096, 2048, 1024, 512];
 
-    /** @var int[] Ascending list of tiled level sizes */
-    private array $levelSizes = [];
+	/** @var int[] Ascending list of tiled level sizes */
+	private array $levelSizes = [];
 
-    // -------------------------------------------------------------------------
-    // Level-size computation
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Level-size computation
+	// -------------------------------------------------------------------------
 
-    /**
-     * Round $number to the nearest multiple of $divisor.
-     */
-    private static function roundToNearest(int $number, int $divisor): int
-    {
-        return (int)(((int)($number + $divisor / 2) / $divisor)) * $divisor;
-    }
+	/**
+	 * Round $number to the nearest multiple of $divisor.
+	 */
+	private static function roundToNearest(int $number, int $divisor): int
+	{
+		return (int)(((int)($number + $divisor / 2) / $divisor)) * $divisor;
+	}
 
-    /**
-     * Compute ascending level sizes from the cube face pixel width.
-     *
-     * Mirrors pannellum.py compute_level_sizes():
-     *   1. Snap face width to nearest TILE_SIZE (512).
-     *   2. Include every CUBE_LEVELS entry ≤ snapped.
-     *   3. Sort ascending (level 1 = smallest).
-     */
-    private function computeLevelSizes(int $faceWidth): void
-    {
-        $snapped = self::roundToNearest($faceWidth, self::TILE_SIZE);
-        $sizes   = array_filter(self::CUBE_LEVELS, fn($s) => $snapped >= $s);
+	/**
+	 * Compute ascending level sizes from the cube face pixel width.
+	 *
+	 * Mirrors pannellum.py compute_level_sizes():
+	 *   1. Snap face width to nearest TILE_SIZE (512).
+	 *   2. Include every CUBE_LEVELS entry ≤ snapped.
+	 *   3. Sort ascending (level 1 = smallest).
+	 */
+	private function computeLevelSizes(int $faceWidth): void
+	{
+		$snapped = self::roundToNearest($faceWidth, self::TILE_SIZE);
+		$sizes   = array_filter(self::CUBE_LEVELS, fn($s) => $snapped >= $s);
 
-        sort($sizes);
-        $this->levelSizes = array_values($sizes);
-    }
+		sort($sizes);
+		$this->levelSizes = array_values($sizes);
+	}
 
-    // -------------------------------------------------------------------------
-    // Public interface
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Public interface
+	// -------------------------------------------------------------------------
 
-    /**
-     * Process one cube face: generate all level tiles.
-     *
-     * @param string $facesDir  Directory containing {face}.jpg files
-     * @param string $face      One of: f, b, l, r, u, d
-     * @param string $outDir    Root output directory
-     *
-     * @return bool  true on success, false if any error occurred
-     */
-    public function processFace(string $facesDir, string $face, string $outDir): bool
-    {
-        try {
-            $src = $this->loadImage($this->facePath($facesDir, $face));
+	/**
+	 * Process one cube face: generate all level tiles.
+	 *
+	 * @param string $facesDir  Directory containing {face}.jpg files
+	 * @param string $face      One of: f, b, l, r, u, d
+	 * @param string $outDir    Root output directory
+	 *
+	 * @return bool  true on success, false if any error occurred
+	 */
+	public function processFace(string $facesDir, string $face, string $outDir): bool
+	{
+		try {
+			$src = $this->loadImage($this->facePath($facesDir, $face));
 
-            if (empty($this->levelSizes)) {
-                $this->computeLevelSizes($this->imageWidth($src));
-            }
+			if (empty($this->levelSizes)) {
+				$this->computeLevelSizes($this->imageWidth($src));
+			}
 
-            foreach ($this->levelSizes as $idx => $size) {
-                $li       = $idx + 1; // 1-based level index → directory name
-                $levelDir = rtrim($outDir, '/\\') . DIRECTORY_SEPARATOR . $li;
-                $this->writeTiles($src, $face, $size, $levelDir);
-            }
+			foreach ($this->levelSizes as $idx => $size) {
+				$li       = $idx + 1; // 1-based level index → directory name
+				$levelDir = rtrim($outDir, '/\\') . DIRECTORY_SEPARATOR . $li;
+				$this->writeTiles($src, $face, $size, $levelDir);
+			}
 
-            $this->destroyImage($src);
-            return true;
-        } catch (\Throwable $e) {
-            return false;
-        }
-    }
+			$this->destroyImage($src);
+			return true;
+		} catch (\Throwable $e) {
+			return false;
+		}
+	}
 
-    /**
-     * Finalize after all faces are processed; return panorama metadata.
-     *
-     * panoTiles is null — Pannellum consumes cubeResolution, maxLevel, and
-     * tileResolution as scalar values directly in its multiRes config block.
-     *
-     * @return array{
-     *     cubeResolution: int,
-     *     maxLevel: int,
-     *     tileResolution: int,
-     *     panoTiles: null
-     * }
-     */
-    public function finalize(string $facesDir, string $outDir): array
-    {
-        if (empty($this->levelSizes)) {
-            $this->computeLevelSizes($this->faceWidth($this->facePath($facesDir, 'f')));
-        }
+	/**
+	 * Finalize after all faces are processed; return panorama metadata.
+	 *
+	 * panoTiles is null — Pannellum consumes cubeResolution, maxLevel, and
+	 * tileResolution as scalar values directly in its multiRes config block.
+	 *
+	 * @return array{
+	 *     cubeResolution: int,
+	 *     maxLevel: int,
+	 *     tileResolution: int,
+	 *     panoTiles: null
+	 * }
+	 */
+	public function finalize(string $facesDir, string $outDir): array
+	{
+		if (empty($this->levelSizes)) {
+			$this->computeLevelSizes($this->faceWidth($this->facePath($facesDir, 'f')));
+		}
 
-        $cubeResolution = !empty($this->levelSizes)
-            ? $this->levelSizes[count($this->levelSizes) - 1]
-            : 0;
+		$cubeResolution = !empty($this->levelSizes)
+			? $this->levelSizes[count($this->levelSizes) - 1]
+			: 0;
 
-        $this->generateOgImage($facesDir, $outDir);
+		$this->generateOgImage($facesDir, $outDir);
 
-        return [
-            'cubeResolution' => $cubeResolution,
-            'maxLevel'       => count($this->levelSizes),
-            'tileResolution' => self::TILE_SIZE,
-            'panoTiles'      => null,
-        ];
-    }
+		return [
+			'cubeResolution' => $cubeResolution,
+			'maxLevel'       => count($this->levelSizes),
+			'tileResolution' => self::TILE_SIZE,
+			'panoTiles'      => null,
+		];
+	}
 
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Internal helpers
+	// -------------------------------------------------------------------------
 
-    /**
-     * Resize $src to $levelSize and write JPEG tiles into $levelDir.
-     *
-     * Path: {levelDir}/{face}_{row}_{col}.jpg  (0-indexed row/col, no padding)
-     * All Pannellum levels are exact multiples of TILE_SIZE → no edge tiles.
-     */
-    private function writeTiles(
-        mixed  $src,
-        string $face,
-        int    $levelSize,
-        string $levelDir
-    ): void {
-        $this->ensureDir($levelDir);
+	/**
+	 * Resize $src to $levelSize and write JPEG tiles into $levelDir.
+	 *
+	 * Path: {levelDir}/{face}_{row}_{col}.jpg  (0-indexed row/col, no padding)
+	 * All Pannellum levels are exact multiples of TILE_SIZE → no edge tiles.
+	 */
+	private function writeTiles(
+		mixed  $src,
+		string $face,
+		int    $levelSize,
+		string $levelDir
+	): void {
+		$this->ensureDir($levelDir);
 
-        $resized = $this->resizeImage($src, $levelSize, $levelSize);
+		$resized = $this->resizeImage($src, $levelSize, $levelSize);
 
-        // All levels are exact multiples of TILE_SIZE
-        $nTiles = intdiv($levelSize, self::TILE_SIZE);
+		// All levels are exact multiples of TILE_SIZE
+		$nTiles = intdiv($levelSize, self::TILE_SIZE);
 
-        for ($row = 0; $row < $nTiles; $row++) {
-            $y0 = $row * self::TILE_SIZE;
+		for ($row = 0; $row < $nTiles; $row++) {
+			$y0 = $row * self::TILE_SIZE;
 
-            for ($col = 0; $col < $nTiles; $col++) {
-                $x0   = $col * self::TILE_SIZE;
-                $dest = $levelDir . DIRECTORY_SEPARATOR . "{$face}_{$row}_{$col}.jpg";
-                $this->cropAndSave($resized, $x0, $y0, self::TILE_SIZE, self::TILE_SIZE, $dest);
-            }
-        }
+			for ($col = 0; $col < $nTiles; $col++) {
+				$x0   = $col * self::TILE_SIZE;
+				$dest = $levelDir . DIRECTORY_SEPARATOR . "{$face}_{$row}_{$col}.jpg";
+				$this->cropAndSave($resized, $x0, $y0, self::TILE_SIZE, self::TILE_SIZE, $dest);
+			}
+		}
 
-        $this->destroyImage($resized);
-    }
+		$this->destroyImage($resized);
+	}
 }
