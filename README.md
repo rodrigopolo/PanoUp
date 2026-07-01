@@ -15,7 +15,7 @@ exposure settings, GPS coordinates, and more), and uses WebGL to render six cube
 faces from the equirectangular source. Each face is uploaded to the server one at
 a time while the upload form reports byte-level progress. Once all six faces are
 uploaded, the server spawns a detached background worker and immediately returns
-the panorama URL — no waiting for tiles to finish.
+the panorama URL - no waiting for tiles to finish.
 
 Each panorama gets a short random ID (e.g. `dQw4w9Wg`) rather than a sequential
 integer, so URLs are not guessable by enumeration. The background worker tiles
@@ -29,16 +29,16 @@ correct viewer template for each published panorama URL.
 
 ## Features
 
-- **Background tiling** — tile generation runs in a detached server worker; the panorama URL is available immediately after upload.
-- **Live processing page** — visiting the panorama URL while tiles are being generated shows a real-time progress page that auto-reloads when done.
-- **Password protection** — create `password.txt` to enable, delete it to disable. No tools or hashing needed.
-- **Full EXIF metadata** — camera make/model, exposure settings, GPS coordinates, and all other available EXIF fields are extracted in the browser and stored with each panorama.
-- **Non-enumerable URLs** — each panorama gets a short random ID (`dQw4w9Wg` style) instead of a sequential integer, so the full library cannot be discovered by guessing.
-- **Derived images** — Open Graph image (1200×630), krpano preview strip (256×1536), and thumbnail (240×240) are generated on upload.
-- **Flexible folder names** — panorama folders can be renamed to anything, including names with spaces.
-- **Configurable defaults** — set your preferred viewer and library paths in `app/config.php`.
-- **Responsive UI** — upload form works on both desktop and mobile browsers.
-- **Screen Wake Lock** — prevents the screen from sleeping during WebGL rendering and upload (Chrome/Edge/Safari; silently skipped on Firefox).
+- **Background tiling** - tile generation runs in a detached server worker; the panorama URL is available immediately after upload.
+- **Live processing page** - visiting the panorama URL while tiles are being generated shows a real-time progress page that auto-reloads when done.
+- **Password protection** - create `password.txt` to enable, delete it to disable. No tools or hashing needed.
+- **Full EXIF metadata** - camera make/model, exposure settings, GPS coordinates, and all other available EXIF fields are extracted in the browser and stored with each panorama.
+- **Non-enumerable URLs** - each panorama gets a short random ID (`dQw4w9Wg` style) instead of a sequential integer, so the full library cannot be discovered by guessing.
+- **Derived images** - Open Graph image (1200×630), krpano preview strip (256×1536), and thumbnail (240×240) are generated on upload.
+- **Flexible folder names** - panorama folders can be renamed to anything, including names with spaces.
+- **Configurable defaults** - set your preferred viewer and library paths in `app/config.php`.
+- **Responsive UI** - upload form works on both desktop and mobile browsers.
+- **Screen Wake Lock** - prevents the screen from sleeping during WebGL rendering and upload (Chrome/Edge/Safari; silently skipped on Firefox).
 
 ## Requirements
 
@@ -55,7 +55,7 @@ correct viewer template for each published panorama URL.
    installed version, more info below.
 4. *(Optional)* Create `password.txt` in the project root folder and type a
    password in plain text into it to restrict access to the upload form.
-5. Visit the site root — the upload form is ready.
+5. Visit the site root - the upload form is ready.
 
 ## Supported Viewers
 
@@ -63,8 +63,8 @@ correct viewer template for each published panorama URL.
 | -------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | [Pannellum](https://pannellum.org)     | MIT        | Default; loaded from CDN                                                                                                      |
 | [Marzipano](https://www.marzipano.net) | Apache 2.0 | Loaded from CDN                                                                                                               |
-| [Avansel](https://avansel.github.io/)  | MIT        | Loaded from CDN                                                                                                               |
-| [Krpano](https://krpano.com)           | Commercial | **Not included** — obtain a license, place the library in `public/krpano.X.X.X/`, and update `KRPANO_DIR` in `app/config.php` |
+| [Avansel](https://avansel.github.io/)  | MIT        | Loaded from CDN; does not support GPano initial-view/heading metadata (fixed default view)                                   |
+| [Krpano](https://krpano.com)           | Commercial | **Not included** - obtain a license, place the library in `public/krpano.X.X.X/`, and update `KRPANO_DIR` in `app/config.php` |
 
 For example, if you want to use krpano version 1.23.3 and have a licensed
 version, put the following files into in the `./public/krpano.1.23.3` folder:
@@ -90,4 +90,4 @@ version, put the following files into in the `./public/krpano.1.23.3` folder:
 
 ## License
 
-MIT License — Copyright © 2026 Rodrigo Polo.
+MIT License - Copyright © 2026 Rodrigo Polo.

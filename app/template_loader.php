@@ -5,6 +5,22 @@ define('IMAGES_DIR', dirname(__DIR__) . '/images');
 
 require_once __DIR__ . '/config.php';
 
+// Defensively parses a GPano numeric field; null if missing, non-numeric, or out of range.
+function gpano_float($value, float $min, float $max): ?float {
+	if ($value === null || $value === '' || !is_numeric($value)) return null;
+	$f = (float)$value;
+	if (is_nan($f) || is_infinite($f) || $f < $min || $f > $max) return null;
+	return $f;
+}
+
+// Normalizes a degree delta into (-180, 180], for pano-relative yaw.
+function gpano_normalize_deg(float $deg): float {
+	$deg = fmod($deg, 360.0);
+	if ($deg <= -180.0) $deg += 360.0;
+	if ($deg > 180.0)   $deg -= 360.0;
+	return $deg;
+}
+
 // Validate pano_id — reject empty, traversal sequences, and path separators
 $panoId = $_GET['pano_id'] ?? '';
 if (!preg_match('/^[A-Za-z0-9_-]{1,32}$/', $panoId)) {
@@ -57,6 +73,42 @@ $tileResolution   = (int)($meta['multires']['tileResolution'] ?? 512);
 $maxLevel         = (int)($meta['multires']['maxLevel']       ?? 1);
 $cubeResolution   = (int)($meta['multires']['cubeResolution'] ?? 512);
 $viewer           = $meta['viewer'] ?? '';
+
+// Photo Sphere XMP-GPano — initial view + heading (optional; viewer templates
+// fall back to their own hardcoded defaults when these stay null).
+// exifr (with mergeOutput's default of true) flattens GPano XMP tags directly
+// into the top-level exif object rather than nesting them under a "GPano" key.
+$gpano = is_array($meta['exif'] ?? null) ? $meta['exif'] : [];
+
+$poseHeading = gpano_float($gpano['PoseHeadingDegrees'] ?? null, 0, 360);
+$posePitch   = gpano_float($gpano['PosePitchDegrees'] ?? null, -90, 90);
+$poseRoll    = gpano_float($gpano['PoseRollDegrees'] ?? null, -180, 180);
+$viewHeading = gpano_float($gpano['InitialViewHeadingDegrees'] ?? null, 0, 360);
+$viewPitch   = gpano_float($gpano['InitialViewPitchDegrees'] ?? null, -90, 90);
+$viewHfov    = gpano_float($gpano['InitialHorizontalFOVDegrees'] ?? null, 1, 360);
+
+$panoHeading      = $poseHeading; // north offset / compass (Pannellum, krpano <scene heading>)
+$panoHorizonPitch = $posePitch;   // Pannellum horizonPitch passthrough
+$panoHorizonRoll  = $poseRoll;    // Pannellum horizonRoll / krpano prealign roll
+
+// InitialViewHeadingDegrees is used directly as pano-relative yaw, with no
+// PoseHeadingDegrees correction: northOffset/scene-heading only drive a
+// cosmetic compass/map indicator, they don't rotate the actual rendered
+// view. Confirmed against a real Pannellum viewer.getConfig() dump.
+$panoInitialYaw = ($viewHeading !== null)
+	? gpano_normalize_deg($viewHeading)
+	: null;
+
+// Combined pitch in Google's up-positive convention: InitialView pitch plus
+// the horizon (Pose) pitch correction. horizonPitch tilts the rendered sphere
+// itself, shifting what "pitch=0" means, so the commanded pitch must
+// compensate by the same amount — needed even when only one of the two
+// fields is present.
+$panoInitialPitch = ($viewPitch !== null || $posePitch !== null)
+	? ($viewPitch ?? 0) + ($posePitch ?? 0)
+	: null;
+
+$panoInitialHfov = $viewHfov;
 
 // Format panoTiles per viewer expectations
 $rawTiles  = $meta['multires']['panoTiles'] ?? '';

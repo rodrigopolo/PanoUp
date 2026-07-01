@@ -37,7 +37,23 @@
 			"preview": "<?=$siteRoot;?><?=$panoImage;?>/1/f_0_0.jpg",
 			"minHfov": 10,
 			"maxHfov": 140,
-			"hfov": 90,
+			"hfov": <?=$panoInitialHfov ?? 90;?>,
+<?php if ($panoInitialYaw !== null): ?>
+			"yaw": <?=$panoInitialYaw;?>,
+<?php endif; ?>
+<?php if ($panoInitialPitch !== null): ?>
+			"pitch": <?=$panoInitialPitch;?>,
+<?php endif; ?>
+<?php if ($panoHorizonPitch !== null): ?>
+			"horizonPitch": <?=$panoHorizonPitch;?>,
+<?php endif; ?>
+<?php if ($panoHorizonRoll !== null): ?>
+			"horizonRoll": <?=$panoHorizonRoll;?>,
+<?php endif; ?>
+<?php if ($panoHeading !== null): ?>
+			"compass": true,
+			"northOffset": <?=$panoHeading;?>,
+<?php endif; ?>
 			"multiResMinHfov": true,
 			"multiRes": {
 				"basePath": "<?=$siteRoot;?><?=$panoImage;?>",

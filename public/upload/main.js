@@ -219,7 +219,9 @@ function checkAspectRatio(file) {
 }
 
 /**
- * Attempts to read GPS coordinates from EXIF via exifr (lite build).
+ * Attempts to read GPS coordinates from EXIF via exifr (full build).
+ * Also requests XMP so Photo Sphere XMP-GPano tags (initial view, heading)
+ * are available under exif.GPano for viewers that support them.
  * Populates the module-level gpsLat / gpsLng strings.
  * Never throws — silently leaves them empty if unavailable.
  */
@@ -227,7 +229,7 @@ async function extractGps(file) {
 	gpsLat = '';
 	gpsLng = '';
 	try {
-		const exif = await exifr.parse(file);
+		const exif = await exifr.parse(file, { xmp: true });
 		exifData        = exif ?? null;
 		window.panoExif = exifData;
 		if (exif && exif.latitude != null) {

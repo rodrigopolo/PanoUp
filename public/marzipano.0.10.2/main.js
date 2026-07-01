@@ -20,9 +20,9 @@ var source = new Marzipano.ImageUrlSource(function(tile) {
 var geometry = new Marzipano.CubeGeometry(panorama.tiles);
 
 var initialView = {
-  yaw: 0 * Math.PI / 180,
-  pitch: 0 * Math.PI / 180,
-  fov: 90 * Math.PI / 180
+  yaw: panorama.initialYaw * Math.PI / 180,
+  pitch: panorama.initialPitch * Math.PI / 180,
+  fov: panorama.initialHfov * Math.PI / 180
 };
 
 // Create view.

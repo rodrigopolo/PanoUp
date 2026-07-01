@@ -28,6 +28,8 @@
 	
 	<div id="pano"></div>
 
+	<!-- Avansel's public API has no way to set an initial view/heading, so
+	     Photo Sphere XMP-GPano initial-view metadata is ignored for this viewer. -->
 	<script type="text/javascript">
 		const panorama = {
 			prefix: "<?=$siteRoot;?><?=$panoImage;?>",
