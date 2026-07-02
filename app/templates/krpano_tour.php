@@ -62,7 +62,7 @@
 
 	<scene name="scene_image" title="image" onstart="" thumburl="<?=$siteRoot;?><?=$panoImage;?>thumb.jpg" lat="<?=$panoLat;?>" lng="<?=$panoLon;?>" alt="" heading="<?=$panoHeading ?? '0.0';?>">
 		<control bouncinglimits="calc:image.cube ? true : false" />
-		<view hlookat="<?=$panoInitialYaw ?? '0.0';?>" vlookat="<?=$panoInitialPitch !== null ? -$panoInitialPitch : '0.0';?>" fovtype="MFOV" fov="<?=$panoInitialHfov ?? 120;?>" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+		<view hlookat="<?=$panoInitialYaw ?? '0.0';?>" vlookat="<?=$panoInitialPitch !== null ? -$panoInitialPitch : '0.0';?>" camroll="<?=$panoInitialRoll ?? '0.0';?>" fovtype="MFOV" fov="<?=$panoInitialHfov ?? 120;?>" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
 		<preview url="<?=$siteRoot;?><?=$panoImage;?>preview.jpg" />
 		<image<?php if ($panoHorizonRoll !== null): ?> prealign="0|0|<?=$panoHorizonRoll;?>"<?php endif; ?>>
 			<cube url="<?=$siteRoot;?><?=$panoImage;?>%s/l%l/%0v/l%l_%s_%0v_%0h.jpg" multires="<?=$panoTiles;?>" />

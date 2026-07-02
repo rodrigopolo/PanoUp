@@ -38,6 +38,7 @@
 			"minHfov": 10,
 			"maxHfov": 140,
 			"hfov": <?=$panoInitialHfov ?? 90;?>,
+			"ignoreGPanoXMP": true,
 <?php if ($panoInitialYaw !== null): ?>
 			"yaw": <?=$panoInitialYaw;?>,
 <?php endif; ?>
@@ -50,6 +51,9 @@
 <?php if ($panoHorizonRoll !== null): ?>
 			"horizonRoll": <?=$panoHorizonRoll;?>,
 <?php endif; ?>
+<?php // $panoInitialRoll intentionally unused here: Pannellum's viewer API has
+      // no initial-view camera-roll option distinct from horizonRoll (its
+      // renderer locks "up" to screen-vertical); see GPANO.md. ?>
 <?php if ($panoHeading !== null): ?>
 			"compass": true,
 			"northOffset": <?=$panoHeading;?>,

@@ -36,6 +36,7 @@
 			tiles:<?=$panoTiles;?>,
 			initialYaw: <?=$panoInitialYaw ?? 0;?>,
 			initialPitch: <?=$panoInitialPitch ?? 0;?>,
+			initialRoll: <?=$panoInitialRoll ?? 0;?>,
 			initialHfov: <?=$panoInitialHfov !== null ? $panoInitialHfov : 'null';?>,
 		}
 	</script>

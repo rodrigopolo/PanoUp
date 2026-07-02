@@ -41,6 +41,10 @@ var initialVfov = panorama.initialHfov !== null
 var initialView = {
   yaw: panorama.initialYaw * Math.PI / 180,
   pitch: -panorama.initialPitch * Math.PI / 180,
+  // Roll has no live-browser verification yet (unlike the pitch negation
+  // above), so it's passed through unflipped per the GPano math model —
+  // revisit if a live render shows it's mirrored.
+  roll: panorama.initialRoll * Math.PI / 180,
   fov: initialVfov
 };
 

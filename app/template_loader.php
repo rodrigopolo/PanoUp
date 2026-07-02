@@ -4,6 +4,7 @@ define('APP_DIR',    __DIR__);
 define('IMAGES_DIR', dirname(__DIR__) . '/images');
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/gpano_math.php';
 
 // Defensively parses a GPano numeric field; null if missing, non-numeric, or out of range.
 function gpano_float($value, float $min, float $max): ?float {
@@ -85,28 +86,33 @@ $posePitch   = gpano_float($gpano['PosePitchDegrees'] ?? null, -90, 90);
 $poseRoll    = gpano_float($gpano['PoseRollDegrees'] ?? null, -180, 180);
 $viewHeading = gpano_float($gpano['InitialViewHeadingDegrees'] ?? null, 0, 360);
 $viewPitch   = gpano_float($gpano['InitialViewPitchDegrees'] ?? null, -90, 90);
+$viewRoll    = gpano_float($gpano['InitialViewRollDegrees'] ?? null, -180, 180);
 $viewHfov    = gpano_float($gpano['InitialHorizontalFOVDegrees'] ?? null, 1, 360);
 
+// Raw Pose passthrough — feeds each viewer's own horizon-tilt reprojection
+// primitive (Pannellum horizonPitch/horizonRoll, krpano's roll-only
+// prealign) and the compass/scene-heading indicator. Independent of the
+// composed local view below; not run through worldViewToLocal.
 $panoHeading      = $poseHeading; // north offset / compass (Pannellum, krpano <scene heading>)
 $panoHorizonPitch = $posePitch;   // Pannellum horizonPitch passthrough
 $panoHorizonRoll  = $poseRoll;    // Pannellum horizonRoll / krpano prealign roll
 
-// InitialViewHeadingDegrees is used directly as pano-relative yaw, with no
-// PoseHeadingDegrees correction: northOffset/scene-heading only drive a
-// cosmetic compass/map indicator, they don't rotate the actual rendered
-// view. Confirmed against a real Pannellum viewer.getConfig() dump.
-$panoInitialYaw = ($viewHeading !== null)
-	? gpano_normalize_deg($viewHeading)
-	: null;
-
-// Combined pitch in Google's up-positive convention: InitialView pitch plus
-// the horizon (Pose) pitch correction. horizonPitch tilts the rendered sphere
-// itself, shifting what "pitch=0" means, so the commanded pitch must
-// compensate by the same amount — needed even when only one of the two
-// fields is present.
-$panoInitialPitch = ($viewPitch !== null || $posePitch !== null)
-	? ($viewPitch ?? 0) + ($posePitch ?? 0)
-	: null;
+// Local (pano-relative) yaw/pitch/roll via real rotation-matrix composition
+// (see gpano_math.php) — Pose and InitialView are both world-frame angles;
+// worldViewToLocal() converts them into what each viewer should render.
+// Missing Pose fields default to identity (0,0,0): a file with InitialView
+// but no Pose data composes as if Pose were untilted/unrotated. A panorama
+// with no InitialView data at all keeps every value null, so every viewer
+// template falls back to its own hardcoded default (same as before).
+$panoInitialYaw = $panoInitialPitch = $panoInitialRoll = null;
+if ($viewHeading !== null || $viewPitch !== null || $viewRoll !== null) {
+	$pose = ['heading' => $poseHeading ?? 0, 'pitch' => $posePitch ?? 0, 'roll' => $poseRoll ?? 0];
+	$view = ['heading' => $viewHeading ?? 0, 'pitch' => $viewPitch ?? 0, 'roll' => $viewRoll ?? 0];
+	$local = gpano_world_view_to_local($pose, $view);
+	$panoInitialYaw   = gpano_normalize_deg($local['heading']);
+	$panoInitialPitch = $local['pitch'];
+	$panoInitialRoll  = $local['roll'];
+}
 
 $panoInitialHfov = $viewHfov;
 
