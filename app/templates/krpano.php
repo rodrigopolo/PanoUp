@@ -25,9 +25,24 @@
 	<meta name="mobile-web-app-capable" content="yes" />
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 	<meta http-equiv="x-ua-compatible" content="IE=edge" />
+	<?php if (defined('KRPANO_DIR')): ?>
 	<link href="<?=$siteRoot;?>public/<?=KRPANO_DIR;?>/style.css" rel="stylesheet">
+	<?php endif; ?>
 </head>
 <body>
+	<?php if (!defined('KRPANO_DIR')): ?>
+	<table style="width:100%;height:100%;">
+		<tr style="vertical-align:middle;">
+			<td>
+				<div style="text-align:center;">ERROR:<br/>
+					<br/>
+					KRPANO_DIR is not defined in app/config.php<br/>
+					<br/>
+				</div>
+			</td>
+		</tr>
+	</table>
+	<?php else: ?>
 	<script src="<?=$siteRoot;?>public/<?=KRPANO_DIR;?>/tour.js"></script>
 	<div id="pano" style="width:100%;height:100%;">
 		<noscript>
@@ -50,6 +65,7 @@
 			});
 		</script>
 	</div>
+	<?php endif; ?>
 </body>
 </html>
 
