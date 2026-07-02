@@ -24,4 +24,4 @@ define('DEFAULT_VIEWER', 'pannellum');
 // -- krpano library directory --------------------------------------------------
 // Directory name inside public/ where krpano is installed.
 // Update this string when you install a new version of krpano.
-define('KRPANO_DIR', 'krpano.1.23.2');
+// define('KRPANO_DIR', 'krpano.1.23.3');
