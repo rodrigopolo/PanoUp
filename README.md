@@ -47,6 +47,16 @@ correct viewer template for each published panorama URL.
 - PHP 8.0+ with the **Imagick** extension (recommended) or **GD**
 - A standard LAMP / MAMP / WAMP stack
 
+Large panoramas produce large per-face uploads (a 20000px-wide source can
+easily exceed 8MB per face), so `.htaccess` ships `php_value` overrides
+raising `post_max_size`/`upload_max_filesize`/`memory_limit` — but this only
+takes effect under **mod_php**. On php-fpm/CGI hosts (where `.htaccess`
+`php_value` is ignored or fatal), or where `AllowOverride` doesn't permit
+`php_value`, you'll need to raise these instead via `php.ini`, a `.user.ini`
+file, your php-fpm pool config, or by asking your host. If the limit is ever
+exceeded, the app now reports a specific "Upload too large" error rather
+than a generic failure.
+
 ## Installation
 
 1. Clone or download into your web server's document root.

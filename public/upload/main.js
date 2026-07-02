@@ -521,12 +521,13 @@ function uploadFaceXhr(id, face, blob, faceName, onProgress) {
 			if (e.lengthComputable) onProgress(e.loaded, e.total);
 		};
 		xhr.onload = () => {
+			let json = null;
+			try { json = JSON.parse(xhr.responseText); } catch { /* non-JSON body */ }
 			if (xhr.status < 200 || xhr.status >= 300) {
-				reject(new Error(`${faceName} Face: upload error ${xhr.status}`)); return;
+				reject(new Error(`${faceName} Face: ${json && json.error ? json.error : 'upload error ' + xhr.status}`));
+				return;
 			}
-			let json;
-			try   { json = JSON.parse(xhr.responseText); }
-			catch { reject(new Error(`${faceName} Face: invalid JSON response`)); return; }
+			if (!json) { reject(new Error(`${faceName} Face: invalid JSON response`)); return; }
 			json.error ? reject(new Error(`${faceName} Face: ${json.error}`)) : resolve();
 		};
 		xhr.onerror   = () => reject(new Error(`${faceName} Face: network error`));
@@ -594,7 +595,10 @@ uploadForm.addEventListener('submit', async (e) => {
 			body:    JSON.stringify({ action: 'init' }),
 		});
 		if (!initResp.ok) throw new Error(`Init failed (${initResp.status})`);
-		const { id } = await initResp.json();
+		const { id, postMaxSize, uploadMaxFilesize } = await initResp.json();
+		// Margin for multipart boundary/field overhead beyond the raw image bytes.
+		const UPLOAD_OVERHEAD_BYTES = 4096;
+		const maxFaceBytes = Math.min(postMaxSize || Infinity, uploadMaxFilesize || Infinity) - UPLOAD_OVERHEAD_BYTES;
 		step++;
 
 		// -- decode source image for WebGL -------------------------
@@ -619,6 +623,12 @@ uploadForm.addEventListener('submit', async (e) => {
 				const blob = await mapper.renderFaceAsBlob(face);
 				step++;
 				showProgress(`${faceNames[face]} Face — rendered`, step);
+
+				if (Number.isFinite(maxFaceBytes) && blob.size > maxFaceBytes) {
+					const sizeMB  = (blob.size / 1048576).toFixed(1);
+					const limitMB = (maxFaceBytes / 1048576).toFixed(1);
+					throw new Error(`${faceNames[face]} Face is ${sizeMB}MB, exceeding this server's ${limitMB}MB upload limit. Ask the site administrator to raise post_max_size / upload_max_filesize, or use a smaller source image.`);
+				}
 
 				const uploadStartStep = step;
 				await uploadFaceXhr(id, face, blob, faceNames[face], (loaded, total) => {

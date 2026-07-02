@@ -36,6 +36,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 	exit;
 }
 
+// Detect a request PHP rejected for exceeding post_max_size. When this happens,
+// PHP silently empties both $_POST and $_FILES before this script ever runs
+// (it only logs a warning) — Content-Length still exceeding the configured
+// limit while both superglobals are empty is the only way to detect it here.
+$contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+$postMaxBytes  = ini_to_bytes(ini_get('post_max_size'));
+if (
+	$_SERVER['REQUEST_METHOD'] === 'POST' &&
+	$contentLength > 0 && $postMaxBytes > 0 && $contentLength > $postMaxBytes &&
+	empty($_POST) && empty($_FILES)
+) {
+	http_response_code(413);
+	echo json_encode(['error' => sprintf(
+		'Upload too large: this request is %.1fMB but the server only accepts up to %.1fMB per request (post_max_size). Ask the site administrator to raise post_max_size/upload_max_filesize in php.ini.',
+		$contentLength / 1048576, $postMaxBytes / 1048576
+	)]);
+	exit;
+}
+
 if (str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) {
 	$_POST = array_merge($_POST, json_decode(file_get_contents('php://input'), true) ?? []);
 }
@@ -64,7 +83,7 @@ try {
 }
 
 
-// ── Actions ───────────────────────────────────────────────────────────────────
+// -- Actions -------------------------------------------------------------------
 
 function action_init(): void {
 	$id  = generate_id();
@@ -72,7 +91,11 @@ function action_init(): void {
 	if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
 		throw new RuntimeException("Cannot create directory: $dir");
 	}
-	echo json_encode(['id' => $id]);
+	echo json_encode([
+		'id'                => $id,
+		'postMaxSize'       => ini_to_bytes(ini_get('post_max_size')),
+		'uploadMaxFilesize' => ini_to_bytes(ini_get('upload_max_filesize')),
+	]);
 }
 
 function action_upload(): void {
@@ -80,6 +103,15 @@ function action_upload(): void {
 	$face = validate_face();
 
 	if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+		$code = $_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE;
+		if ($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE) {
+			http_response_code(413);
+			echo json_encode(['error' => sprintf(
+				'Image exceeds the server upload limit (max %s). Ask the site administrator to raise upload_max_filesize/post_max_size.',
+				ini_get('upload_max_filesize')
+			)]);
+			return;
+		}
 		http_response_code(400);
 		echo json_encode(['error' => 'Missing or failed image upload']);
 		return;
@@ -172,7 +204,19 @@ function action_finalize(): void {
 }
 
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
+
+function ini_to_bytes(string $val): int {
+	$val = trim($val);
+	if ($val === '') return 0;
+	$unit = strtolower(substr($val, -1));
+	return match ($unit) {
+		'g' => (int) $val * 1024 * 1024 * 1024,
+		'm' => (int) $val * 1024 * 1024,
+		'k' => (int) $val * 1024,
+		default => (int) $val,
+	};
+}
 
 function generate_id(): string {
 	do {

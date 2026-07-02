@@ -1,3 +1,11 @@
+# Raise upload/POST size limits for large panorama uploads (mod_php only —
+# php-fpm/CGI hosts ignore php_value in .htaccess; see README for alternatives).
+<IfModule mod_php.c>
+	php_value upload_max_filesize 256M
+	php_value post_max_size 300M
+	php_value memory_limit 512M
+</IfModule>
+
 # Block direct HTTP access to the password file
 <Files "password.txt">
 	Order deny,allow
