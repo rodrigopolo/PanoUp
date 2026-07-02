@@ -36,7 +36,7 @@
 			tiles:<?=$panoTiles;?>,
 			initialYaw: <?=$panoInitialYaw ?? 0;?>,
 			initialPitch: <?=$panoInitialPitch ?? 0;?>,
-			initialHfov: <?=$panoInitialHfov ?? 90;?>,
+			initialHfov: <?=$panoInitialHfov !== null ? $panoInitialHfov : 'null';?>,
 		}
 	</script>
 	<script src="//cdnjs.cloudflare.com/ajax/libs/marzipano/0.10.2/marzipano.min.js" integrity="sha512-yXzJzoGCljUpxjkFmg+6No2leY9Dp0/PpQiVkIQ+uZLAb5xwsTAY2I5l/Wm7rmjDk0nRh3Q2Cr5T5cSh1OHJBw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

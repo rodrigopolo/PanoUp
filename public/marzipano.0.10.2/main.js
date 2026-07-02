@@ -5,7 +5,8 @@ var tileUrl = function(f, z, x, y) {
 	return panorama.prefix + "/" + z + "/" + f + "_" + y + "_" + x + ".jpg";
 };
 
-var viewer = new Marzipano.Viewer(document.getElementById(panorama.domid), {stage: {progressive: true}});
+var container = document.getElementById(panorama.domid);
+var viewer = new Marzipano.Viewer(container, {stage: {progressive: true}});
 
 var source = new Marzipano.ImageUrlSource(function(tile) {
 	if (tile.z === 0) {
@@ -19,10 +20,28 @@ var source = new Marzipano.ImageUrlSource(function(tile) {
 // Create geometry.
 var geometry = new Marzipano.CubeGeometry(panorama.tiles);
 
+// Marzipano's pitch is positive-down in actual behavior — confirmed
+// empirically (a live view.pitch()=-78.7° readback showed the sky/up face,
+// the opposite of intended), and independently corroborated by CubeGeometry's
+// own face mapping (u -> +Y, d -> -Y) combined with Rectilinear.js's own
+// coordinatesToScreen() ray math (y = -Math.sin(pitch), so positive pitch ->
+// negative y -> the 'd'/down face). RectilinearView's own JSDoc claims the
+// opposite ("pitch > 0 rotates upwards") — that JSDoc is wrong for this
+// build; the empirical browser test is the authority here, not the comment.
+// Its fov IS vertical (JSDoc, and this part checks out), while GPano's
+// InitialHorizontalFOVDegrees is horizontal, so it needs a proper h->v
+// conversion against the actual container size — but only when GPano
+// supplied a real value; the hardcoded 90° default is kept as-is (already a
+// vertical fov, never meant to be converted) so untagged panoramas render
+// identically to before.
+var initialVfov = panorama.initialHfov !== null
+	? Marzipano.util.convertFov.htov(panorama.initialHfov * Math.PI / 180, container.clientWidth, container.clientHeight)
+	: 90 * Math.PI / 180;
+
 var initialView = {
   yaw: panorama.initialYaw * Math.PI / 180,
-  pitch: panorama.initialPitch * Math.PI / 180,
-  fov: panorama.initialHfov * Math.PI / 180
+  pitch: -panorama.initialPitch * Math.PI / 180,
+  fov: initialVfov
 };
 
 // Create view.
