@@ -64,7 +64,7 @@
 		<control bouncinglimits="calc:image.cube ? true : false" />
 		<view hlookat="<?=$panoInitialYaw ?? '0.0';?>" vlookat="<?=$panoInitialPitch !== null ? -$panoInitialPitch : '0.0';?>" camroll="<?=$panoInitialRoll ?? '0.0';?>" fovtype="MFOV" fov="<?=$panoInitialHfov ?? 120;?>" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
 		<preview url="<?=$siteRoot;?><?=$panoImage;?>preview.jpg" />
-		<image<?php if ($panoHorizonRoll !== null): ?> prealign="0|0|<?=$panoHorizonRoll;?>"<?php endif; ?>>
+		<image<?php if ($panoHorizonPitch !== null || $panoHorizonRoll !== null): ?> prealign="<?=$panoHorizonPitch !== null ? -$panoHorizonPitch : 0;?>|0|<?=$panoHorizonRoll ?? 0;?>"<?php endif; ?>>
 			<cube url="<?=$siteRoot;?><?=$panoImage;?>%s/l%l/%0v/l%l_%s_%0v_%0h.jpg" multires="<?=$panoTiles;?>" />
 		</image>
 	</scene>

@@ -4,7 +4,6 @@ define('APP_DIR',    __DIR__);
 define('IMAGES_DIR', dirname(__DIR__) . '/images');
 
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/gpano_math.php';
 
 // Defensively parses a GPano numeric field; null if missing, non-numeric, or out of range.
 function gpano_float($value, float $min, float $max): ?float {
@@ -92,29 +91,28 @@ $viewHfov    = gpano_float($gpano['InitialHorizontalFOVDegrees'] ?? null, 1, 360
 // Raw Pose passthrough — feeds each viewer's own horizon-tilt reprojection
 // primitive (Pannellum horizonPitch/horizonRoll, krpano's roll-only
 // prealign) and the compass/scene-heading indicator. Independent of the
-// composed local view below; not run through worldViewToLocal.
+// initial-view values below. Per-viewer sign flips (e.g. Pannellum negates
+// horizonRoll) are applied in the template that needs them, not here — see
+// app/templates/pannellum.php.
 $panoHeading      = $poseHeading; // north offset / compass (Pannellum, krpano <scene heading>)
-$panoHorizonPitch = $posePitch;   // Pannellum horizonPitch passthrough
-$panoHorizonRoll  = $poseRoll;    // Pannellum horizonRoll / krpano prealign roll
+$panoHorizonPitch = $posePitch;   // Pannellum horizonPitch passthrough (no negation)
+$panoHorizonRoll  = $poseRoll;    // raw PoseRollDegrees; krpano prealign roll (no negation); Pannellum negates it inline
 
-// Local (pano-relative) yaw/pitch/roll via real rotation-matrix composition
-// (see gpano_math.php) — Pose and InitialView are both world-frame angles;
-// worldViewToLocal() converts them into what each viewer should render.
-// Missing Pose fields default to identity (0,0,0): a file with InitialView
-// but no Pose data composes as if Pose were untilted/unrotated. A panorama
-// with no InitialView data at all keeps every value null, so every viewer
-// template falls back to its own hardcoded default (same as before).
-$panoInitialYaw = $panoInitialPitch = $panoInitialRoll = null;
-if ($viewHeading !== null || $viewPitch !== null || $viewRoll !== null) {
-	$pose = ['heading' => $poseHeading ?? 0, 'pitch' => $posePitch ?? 0, 'roll' => $poseRoll ?? 0];
-	$view = ['heading' => $viewHeading ?? 0, 'pitch' => $viewPitch ?? 0, 'roll' => $viewRoll ?? 0];
-	$local = gpano_world_view_to_local($pose, $view);
-	$panoInitialYaw   = gpano_normalize_deg($local['heading']);
-	$panoInitialPitch = $local['pitch'];
-	$panoInitialRoll  = $local['roll'];
-}
-
-$panoInitialHfov = $viewHfov;
+// Local (pano-relative) yaw/pitch/roll. Per the authoritative reference
+// implementation (https://github.com/rodrigopolo/360PanoMeta, js/viewer.js
+// buildViewer()) — a browser tool that live-renders Pannellum while editing
+// GPano tags, tested against 15 reference images
+// (https://github.com/rodrigopolo/360GPanoReference) — heading is the only
+// axis that needs manual reconciliation between InitialView's compass frame
+// and the image's raw column-0 (a pure Z-axis rotation, so it commutes
+// cleanly). Pitch and roll are NOT composed with Pose: they're corrected
+// separately at the texture level (Pannellum horizonPitch/horizonRoll,
+// §3.2/§4 below), so InitialView pitch/roll pass through raw. See GPANO.md
+// §5 for why this superseded an earlier full rotation-matrix composition.
+$panoInitialYaw   = $viewHeading !== null ? gpano_normalize_deg($viewHeading - ($poseHeading ?? 0)) : null;
+$panoInitialPitch = $viewPitch;
+$panoInitialRoll  = $viewRoll;
+$panoInitialHfov  = $viewHfov;
 
 // Format panoTiles per viewer expectations
 $rawTiles  = $meta['multires']['panoTiles'] ?? '';

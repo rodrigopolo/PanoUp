@@ -19,9 +19,9 @@ define('MEMORY_LIMIT', '1024M');
 // Pre-selects a viewer in the upload form.
 // Valid values: 'avansel', 'krpano', 'marzipano', 'pannellum'
 // Set to '' to show the placeholder "— choose a viewer —" with no default.
-define('DEFAULT_VIEWER', 'pannellum');
+define('DEFAULT_VIEWER', 'krpano');
 
 // -- krpano library directory --------------------------------------------------
 // Directory name inside public/ where krpano is installed.
 // Update this string when you install a new version of krpano.
-// define('KRPANO_DIR', 'krpano.1.23.3');
+define('KRPANO_DIR', 'krpano.1.23.2');

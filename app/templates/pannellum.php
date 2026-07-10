@@ -49,11 +49,8 @@
 			"horizonPitch": <?=$panoHorizonPitch;?>,
 <?php endif; ?>
 <?php if ($panoHorizonRoll !== null): ?>
-			"horizonRoll": <?=$panoHorizonRoll;?>,
+			"horizonRoll": <?= -$panoHorizonRoll ?>,
 <?php endif; ?>
-<?php // $panoInitialRoll intentionally unused here: Pannellum's viewer API has
-      // no initial-view camera-roll option distinct from horizonRoll (its
-      // renderer locks "up" to screen-vertical); see GPANO.md. ?>
 <?php if ($panoHeading !== null): ?>
 			"compass": true,
 			"northOffset": <?=$panoHeading;?>,
@@ -71,6 +68,28 @@
 			domid: "pano"
 		}
 		pannellum.viewer(panorama.domid, panorama);
+<?php if ($panoInitialRoll !== null): ?>
+		// InitialViewRollDegrees: Pannellum's viewer API has no native initial-
+		// view roll parameter (horizonRoll only reprojects the sphere/Pose
+		// tilt, not the camera). Applied instead as a CSS transform on the
+		// render container, ported from https://github.com/rodrigopolo/360PanoMeta
+		// (js/viewer.js, applyInitialRoll()) — CSS rotate() is
+		// clockwise-positive, GPano roll is counterclockwise-positive, hence
+		// the negation. The scale factor is the minimal covering scale so the
+		// rotated container has no corner gaps (derived from requiring all 4
+		// viewport corners stay inside the rotated, scaled rect).
+		function panoApplyInitialRoll() {
+			var container = document.querySelector('#pano .pnlm-render-container');
+			if (!container) return;
+			var w = container.offsetWidth, h = container.offsetHeight;
+			if (!w || !h) return;
+			var rad   = <?=$panoInitialRoll;?> * Math.PI / 180;
+			var scale = Math.abs(Math.cos(rad)) + Math.max(w / h, h / w) * Math.abs(Math.sin(rad));
+			container.style.transform = 'rotate(' + (<?=-$panoInitialRoll;?>) + 'deg) scale(' + scale + ')';
+		}
+		panoApplyInitialRoll();
+		window.addEventListener('resize', panoApplyInitialRoll);
+<?php endif; ?>
 	</script>
 
 </body>
