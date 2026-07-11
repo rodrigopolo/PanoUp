@@ -34,9 +34,9 @@
 			prefix: "<?=$siteRoot;?><?=$panoImage;?>",
 			domid: "pano",
 			tiles:<?=$panoTiles;?>,
-			initialYaw: <?=$panoInitialYaw ?? 0;?>,
-			initialPitch: <?=$panoInitialPitch ?? 0;?>,
-			initialRoll: <?=$panoInitialRoll ?? 0;?>,
+			initialYaw: <?=$marzipanoInitialYaw ?? 0;?>,
+			initialPitch: <?=$marzipanoInitialPitch ?? 0;?>,
+			initialRoll: <?=$marzipanoInitialRoll ?? 0;?>,
 			initialHfov: <?=$panoInitialHfov !== null ? $panoInitialHfov : 'null';?>,
 		}
 	</script>

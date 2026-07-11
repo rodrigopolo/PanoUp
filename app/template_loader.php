@@ -4,6 +4,7 @@ define('APP_DIR',    __DIR__);
 define('IMAGES_DIR', dirname(__DIR__) . '/images');
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/gpano_math.php';
 
 // Defensively parses a GPano numeric field; null if missing, non-numeric, or out of range.
 function gpano_float($value, float $min, float $max): ?float {
@@ -95,24 +96,45 @@ $viewHfov    = gpano_float($gpano['InitialHorizontalFOVDegrees'] ?? null, 1, 360
 // horizonRoll) are applied in the template that needs them, not here — see
 // app/templates/pannellum.php.
 $panoHeading      = $poseHeading; // north offset / compass (Pannellum, krpano <scene heading>)
-$panoHorizonPitch = $posePitch;   // Pannellum horizonPitch passthrough (no negation)
-$panoHorizonRoll  = $poseRoll;    // raw PoseRollDegrees; krpano prealign roll (no negation); Pannellum negates it inline
+$panoHorizonPitch = $posePitch;   // Pannellum horizonPitch / Avansel mesh.rotation passthrough (no negation)
+$panoHorizonRoll  = $poseRoll;    // raw PoseRollDegrees; krpano prealign / Avansel mesh.rotation (no negation); Pannellum negates it inline
 
-// Local (pano-relative) yaw/pitch/roll. Per the authoritative reference
-// implementation (https://github.com/rodrigopolo/360PanoMeta, js/viewer.js
-// buildViewer()) — a browser tool that live-renders Pannellum while editing
-// GPano tags, tested against 15 reference images
+// Local (pano-relative) yaw/pitch/roll for viewers with their OWN Pose-
+// correction primitive (Pannellum horizonPitch/horizonRoll, krpano prealign
+// rx/rz, Avansel's mesh.rotation hack — see app/templates/avansel.php).
+// Per the authoritative reference implementation
+// (https://github.com/rodrigopolo/360PanoMeta, js/viewer.js buildViewer())
+// — a browser tool that live-renders Pannellum while editing GPano tags,
+// tested against 15 reference images
 // (https://github.com/rodrigopolo/360GPanoReference) — heading is the only
 // axis that needs manual reconciliation between InitialView's compass frame
 // and the image's raw column-0 (a pure Z-axis rotation, so it commutes
 // cleanly). Pitch and roll are NOT composed with Pose: they're corrected
-// separately at the texture level (Pannellum horizonPitch/horizonRoll,
-// §3.2/§4 below), so InitialView pitch/roll pass through raw. See GPANO.md
-// §5 for why this superseded an earlier full rotation-matrix composition.
+// separately at the texture level (§3.2/§4 below), so InitialView pitch/
+// roll pass through raw. See GPANO.md §5 for why this superseded an earlier
+// full rotation-matrix composition.
 $panoInitialYaw   = $viewHeading !== null ? gpano_normalize_deg($viewHeading - ($poseHeading ?? 0)) : null;
 $panoInitialPitch = $viewPitch;
 $panoInitialRoll  = $viewRoll;
 $panoInitialHfov  = $viewHfov;
+
+// Marzipano-only: it has no Pose-correction primitive of its own (no
+// horizonPitch/horizonRoll equivalent, no exposed geometry transform), so
+// Pose has to be folded directly into the camera's initial yaw/pitch/roll
+// via real rotation composition (gpano_math.php) instead of the simple
+// formula above. See GPANO.md §4.4 for why this is the right tool here even
+// though the same composition was deliberately removed project-wide
+// earlier (it was wrong for viewers that already reproject Pose separately
+// — Marzipano is the one viewer that doesn't).
+$marzipanoInitialYaw = $marzipanoInitialPitch = $marzipanoInitialRoll = null;
+if ($viewHeading !== null || $viewPitch !== null || $viewRoll !== null) {
+	$pose = ['heading' => $poseHeading ?? 0, 'pitch' => $posePitch ?? 0, 'roll' => $poseRoll ?? 0];
+	$view = ['heading' => $viewHeading ?? 0, 'pitch' => $viewPitch ?? 0, 'roll' => $viewRoll ?? 0];
+	$local = gpano_world_view_to_local($pose, $view);
+	$marzipanoInitialYaw   = gpano_normalize_deg($local['heading']);
+	$marzipanoInitialPitch = $local['pitch'];
+	$marzipanoInitialRoll  = $local['roll'];
+}
 
 // Format panoTiles per viewer expectations
 $rawTiles  = $meta['multires']['panoTiles'] ?? '';

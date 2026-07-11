@@ -29,12 +29,20 @@
 	<div id="pano"></div>
 
 	<!-- Avansel's public API has no way to set an initial view/heading, so
-	     Photo Sphere XMP-GPano initial-view metadata is ignored for this viewer. -->
+	     GPano orientation is applied via undocumented internals reached
+	     through the Avansel instance (pano.get(), controls, camera) instead
+	     of an official method — see public/avansel.0.0.17/main.js and
+	     GPANO.md for why and how. -->
 	<script type="text/javascript">
 		const panorama = {
 			prefix: "<?=$siteRoot;?><?=$panoImage;?>",
 			domid: "pano",
-			tiles: <?=$panoTiles;?>
+			tiles: <?=$panoTiles;?>,
+			initialYaw: <?=$panoInitialYaw !== null ? $panoInitialYaw : 'null';?>,
+			initialPitch: <?=$panoInitialPitch !== null ? $panoInitialPitch : 'null';?>,
+			initialRoll: <?=$panoInitialRoll !== null ? $panoInitialRoll : 'null';?>,
+			horizonPitch: <?=$panoHorizonPitch !== null ? $panoHorizonPitch : 'null';?>,
+			horizonRoll: <?=$panoHorizonRoll !== null ? $panoHorizonRoll : 'null';?>,
 		}
 	</script>
 	<script async src="//unpkg.com/es-module-shims@2.8.1/dist/es-module-shims.js"></script>

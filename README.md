@@ -33,7 +33,7 @@ correct viewer template for each published panorama URL.
 - **Live processing page** - visiting the panorama URL while tiles are being generated shows a real-time progress page that auto-reloads when done.
 - **Password protection** - create `password.txt` to enable, delete it to disable. No tools or hashing needed.
 - **Full EXIF metadata** - camera make/model, exposure settings, GPS coordinates, and all other available EXIF fields are extracted in the browser and stored with each panorama.
-- **XMP-GPano initial view & heading** - if the uploaded JPG carries Photo Sphere XMP-GPano tags (`PoseHeadingDegrees`, `PosePitchDegrees`, `PoseRollDegrees`, `InitialViewHeadingDegrees`, `InitialViewPitchDegrees`, `InitialViewRollDegrees`, `InitialHorizontalFOVDegrees`), Pannellum, Marzipano, and krpano all open at the recommended initial view; Pannellum and krpano additionally orient a compass/map heading indicator and correct the Pose pitch/roll horizon tilt directly in the rendered sphere (Marzipano has neither).
+- **XMP-GPano initial view & heading** - if the uploaded JPG carries Photo Sphere XMP-GPano tags (`PoseHeadingDegrees`, `PosePitchDegrees`, `PoseRollDegrees`, `InitialViewHeadingDegrees`, `InitialViewPitchDegrees`, `InitialViewRollDegrees`, `InitialHorizontalFOVDegrees`), all four viewers open at the recommended initial view. Pannellum, krpano, and Avansel also correct the Pose pitch/roll horizon tilt directly in the rendered sphere, and Pannellum/krpano additionally orient a compass/map heading indicator. Marzipano has neither, so Pose is instead folded into its starting view only (panning away reveals the uncorrected tilt).
 - **Non-enumerable URLs** - each panorama gets a short random ID (`dQw4w9Wg` style) instead of a sequential integer, so the full library cannot be discovered by guessing.
 - **Derived images** - Open Graph image (1200×630), krpano preview strip (256×1536), and thumbnail (240×240) are generated on upload.
 - **Flexible folder names** - panorama folders can be renamed to anything, including names with spaces.
@@ -70,11 +70,11 @@ than a generic failure.
 
 ## Supported Viewers
 
-| Viewer                                 | License    | Notes                                                                                                                         |
-| -------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [Pannellum](https://pannellum.org)     | MIT        | Default; loaded from CDN. Full XMP-GPano support: initial view, compass heading, horizon tilt correction                     |
-| [Marzipano](https://www.marzipano.net) | Apache 2.0 | Loaded from CDN. Supports XMP-GPano initial view; no compass/heading indicator                                               |
-| [Avansel](https://avansel.github.io/)  | MIT        | Loaded from CDN; does not support GPano initial-view/heading metadata (fixed default view)                                   |
+| Viewer                                 | License    | Notes                                                                                                                                                                                                              |
+| -------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Pannellum](https://pannellum.org)     | MIT        | Default; loaded from CDN. Full XMP-GPano support: initial view, compass heading, horizon tilt correction                                                                                                           |
+| [Marzipano](https://www.marzipano.net) | Apache 2.0 | Loaded from CDN. Supports XMP-GPano initial view (Pose folded into the starting view only); no compass/heading indicator or sphere-wide tilt correction                                                            |
+| [Avansel](https://avansel.github.io/)  | MIT        | Loaded from CDN. Supports XMP-GPano initial view and horizon pitch/roll correction; no compass/heading indicator                                                                                                   |
 | [Krpano](https://krpano.com)           | Commercial | **Not included** - obtain a license, place the library in `public/krpano.X.X.X/`, and update `KRPANO_DIR` in `app/config.php`. Supports XMP-GPano initial view, compass heading, and horizon pitch/roll correction |
 
 For example, if you want to use krpano version 1.23.3 and have a licensed
